@@ -58,9 +58,19 @@ class Lexer:
     class NoMoreTokens(Exception):
         pass
 
-    class QuotesNotClosed(Exception):
+    class LexerError(Exception):
+        def __init__(self, message):
+            self.message = message
+            super().__init__(message)
+
+    class QuotesNotClosed(LexerError):
         def __init__(self):
             self.message = "quotes not closed"
+            super().__init__(self.message)
+
+    class UnknownSymbol(LexerError):
+        def __init__(self, symbol: str):
+            self.message = "unknown symbol: " + symbol
             super().__init__(self.message)
 
     class Token:
@@ -149,9 +159,32 @@ class Lexer:
                 string_literal += curr_sym
 
             next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal)
+        elif curr_sym.isdigit():
+            num_str = ""
+            has_dot = False
+
+            while True:
+                num_str += curr_sym
+                self.next_symbol()
+                if self.program_finished():
+                    break
+
+                curr_sym = self.get_curr_symbol()
+
+                if not curr_sym.isdigit() and curr_sym != '.':
+                    break
+                if curr_sym == '.':
+                    if not has_dot:
+                        has_dot = True
+                    else:
+                        break
+
+            if has_dot:
+                next_tok = Lexer.Token(Lexer.NUM_DOUBLE, num_str)
+            else:
+                next_tok = Lexer.Token(Lexer.NUM_INT, num_str)
         else:
-            next_tok = Lexer.Token(Lexer.INT, curr_sym)
-            self.next_symbol()
+            raise Lexer.UnknownSymbol(curr_sym)
 
         return next_tok
 
@@ -163,9 +196,9 @@ class Lexer:
                 ret.append(self.get_next_token())
             except Lexer.NoMoreTokens:
                 break
-            except Lexer.QuotesNotClosed as err:
+            except Lexer.LexerError as err:
                 # TODO: replace symbol number with LINE and POSITION IN LINE
-                print(f"Lexer error: {err.message} (symbol number: {self._curr_symbol_index})")
+                print(f"LEXER ERROR:\n\t{err.message} (symbol number: {self._curr_symbol_index})")
                 sys.exit(1)
 
         return ret
