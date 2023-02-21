@@ -1,7 +1,6 @@
 import sys
 
 from typing import List
-from codecs import decode
 
 
 class Lexer:
@@ -134,6 +133,14 @@ class Lexer:
                     raise Lexer.QuotesNotClosed()
 
                 curr_sym = self.get_curr_symbol()
+
+                if curr_sym == '\\':
+                    self.next_symbol()
+                    if self.program_finished():
+                        raise Lexer.QuotesNotClosed()
+                    curr_sym = self.get_curr_symbol()
+                    string_literal += '\\' + curr_sym
+                    continue
 
                 if curr_sym == '"':
                     self.next_symbol()
