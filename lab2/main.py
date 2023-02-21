@@ -6,7 +6,9 @@ class Lexer:
     INT, DOUBLE, BOOL, STRING, WHILE, FOR, IF, ELSE, SWITCH, CASE, BREAK, DEFAULT,\
         SCAN, PRINT, ATOI, ATOB, ATOF, TO_STRING, TRUE, FALSE, PLUS, MINUS, MULT, DIV, MOD, \
         COMMA, SEMICOLON, LBRACKET, RBRACKET, LBRACE, RBRACE, EQUAL, LESS, MORE, AND, OR, NOT, \
-        IDENTIFIER, NUM_INT, NUM_DOUBLE = range(40)
+        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(41)
+
+    WHITESPACES = (' ', '\t', '\n')
 
     SPECIAL_SYMBOLS = {
         '+': PLUS,
@@ -43,6 +45,8 @@ class Lexer:
         self._curr_symbol_index = 0
         self._text_len = len(self._program_text) - 1  # EOF in the end?
 
+        # print("END SYMBOL: " + str(ord(self._program_text[self._text_len])))
+
     def get_curr_symbol(self) -> str:
         return self._program_text[self._curr_symbol_index]
 
@@ -53,15 +57,26 @@ class Lexer:
         return self._curr_symbol_index >= self._text_len
 
     def get_next_token(self) -> Token:
+        # get the WHOLE TOKEN
         if self.program_finished():
             raise Lexer.NoMoreTokens()
 
         curr_sym = self.get_curr_symbol()
+        while curr_sym in Lexer.WHITESPACES:
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            if self.program_finished():
+                raise Lexer.NoMoreTokens()
 
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None)
         else:
             next_tok = Lexer.Token(Lexer.INT, curr_sym)
+        """elif curr_sym.isalpha():
+            # read a 'word'
+            word = curr_sym
+            """
 
         self.next_symbol()
         return next_tok
