@@ -30,6 +30,29 @@ class Lexer:
         '!': NOT
     }
 
+    KEYWORDS = {
+        "int": INT,
+        "double": DOUBLE,
+        "bool": BOOL,
+        "string": STRING,
+        "while": WHILE,
+        "for": FOR,
+        "if": IF,
+        "else": ELSE,
+        "switch": SWITCH,
+        "case": CASE,
+        "break": BREAK,
+        "default": DEFAULT,
+        "scan": SCAN,
+        "print": PRINT,
+        "atoi": ATOI,
+        "atob": ATOB,
+        "atof": ATOF,
+        "to_string": TO_STRING,
+        "true": TRUE,
+        "false": FALSE
+    }
+
     class NoMoreTokens(Exception):
         pass
 
@@ -69,8 +92,11 @@ class Lexer:
             if self.program_finished():
                 raise Lexer.NoMoreTokens()
 
+        print("curr_sym = " + curr_sym)
+
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None)
+            self.next_symbol()
         elif curr_sym.isalpha():
             # read a 'word'
             word = curr_sym
@@ -82,11 +108,17 @@ class Lexer:
                 self.next_symbol()
                 curr_sym = self.get_curr_symbol()
 
-            next_tok = Lexer.Token(Lexer.IDENTIFIER, word)
+            # we have the word. what to do now?
+            if word in Lexer.KEYWORDS.keys():
+                # keyword
+                next_tok = Lexer.Token(Lexer.KEYWORDS[word], None)
+            else:
+                # identifier
+                next_tok = Lexer.Token(Lexer.IDENTIFIER, word)
         else:
             next_tok = Lexer.Token(Lexer.INT, curr_sym)
+            self.next_symbol()
 
-        self.next_symbol()
         return next_tok
 
     def split_program_into_tokens(self) -> List[Token]:
