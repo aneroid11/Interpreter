@@ -1,4 +1,7 @@
+import sys
+
 from typing import List
+from codecs import decode
 
 
 class Lexer:
@@ -56,6 +59,11 @@ class Lexer:
     class NoMoreTokens(Exception):
         pass
 
+    class QuotesNotClosed(Exception):
+        def __init__(self):
+            self.message = "quotes not closed"
+            super().__init__(self.message)
+
     class Token:
         def __init__(self, tp=None, vl=None):
             self.type = tp
@@ -92,7 +100,7 @@ class Lexer:
             if self.program_finished():
                 raise Lexer.NoMoreTokens()
 
-        print("curr_sym = " + curr_sym)
+        # print("curr_sym = " + curr_sym)
 
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None)
@@ -115,6 +123,25 @@ class Lexer:
             else:
                 # identifier
                 next_tok = Lexer.Token(Lexer.IDENTIFIER, word)
+        elif curr_sym == '"':
+            # string literal
+            # next_tok = Lexer.Token(Lexer.STRING_LITERAL, "some raw string here")
+            string_literal = ""
+
+            while True:
+                self.next_symbol()
+                if self.program_finished():
+                    raise Lexer.QuotesNotClosed()
+
+                curr_sym = self.get_curr_symbol()
+
+                if curr_sym == '"':
+                    self.next_symbol()
+                    break
+
+                string_literal += curr_sym
+
+            next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal)
         else:
             next_tok = Lexer.Token(Lexer.INT, curr_sym)
             self.next_symbol()
@@ -129,6 +156,10 @@ class Lexer:
                 ret.append(self.get_next_token())
             except Lexer.NoMoreTokens:
                 break
+            except Lexer.QuotesNotClosed as err:
+                # TODO: replace symbol number with LINE and POSITION IN LINE
+                print(f"Lexer error: {err.message} (symbol number: {self._curr_symbol_index})")
+                sys.exit(1)
 
         return ret
 
@@ -141,6 +172,14 @@ def main():
         print(tok.type)
         print(tok.value)
         print()
+
+    """experiment_string = ""
+    experiment_string += "hello"
+    experiment_string += "\\"
+    experiment_string += "n"
+    experiment_string += "world"
+    print("\nexperiment string:")
+    print(bytes(experiment_string, "utf-8").decode("unicode_escape"))"""
 
 
 if __name__ == "__main__":
