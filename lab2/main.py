@@ -71,12 +71,20 @@ class Lexer:
 
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None)
-        else:
-            next_tok = Lexer.Token(Lexer.INT, curr_sym)
-        """elif curr_sym.isalpha():
+        elif curr_sym.isalpha():
             # read a 'word'
             word = curr_sym
-            """
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            while (curr_sym.isalnum() or curr_sym == '_') and not self.program_finished():
+                word += curr_sym
+                self.next_symbol()
+                curr_sym = self.get_curr_symbol()
+
+            next_tok = Lexer.Token(Lexer.IDENTIFIER, word)
+        else:
+            next_tok = Lexer.Token(Lexer.INT, curr_sym)
 
         self.next_symbol()
         return next_tok
