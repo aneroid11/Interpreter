@@ -59,19 +59,25 @@ class Lexer:
         pass
 
     class LexerError(Exception):
-        def __init__(self, message):
+        def __init__(self, message, line: int, index: int):
             self.message = message
+            self.line = line
+            self.index = index
             super().__init__(message)
 
     class QuotesNotClosed(LexerError):
-        def __init__(self):
+        def __init__(self, line: int, index: int):
             self.message = "quotes not closed"
-            super().__init__(self.message)
+            self.line = line
+            self.index = index
+            super().__init__(self.message, line, index)
 
     class UnknownSymbol(LexerError):
-        def __init__(self, symbol: str):
+        def __init__(self, symbol: str, line: int, index: int):
+            self.line = line
+            self.index = index
             self.message = "unknown symbol: " + symbol
-            super().__init__(self.message)
+            super().__init__(self.message, line, index)
 
     class Token:
         def __init__(self, tp=None, vl=None):
@@ -83,6 +89,8 @@ class Lexer:
             self._program_text = f.read()
 
         self._curr_symbol_index = 0
+        self._curr_line = 1
+        self._curr_index_in_line = 1
         self._text_len = len(self._program_text) - 1  # EOF in the end?
 
         # print("END SYMBOL: " + str(ord(self._program_text[self._text_len])))
@@ -92,6 +100,13 @@ class Lexer:
 
     def next_symbol(self):
         self._curr_symbol_index += 1
+
+        if not self.program_finished():
+            self._curr_index_in_line += 1
+
+            if self.get_curr_symbol() == '\n':
+                self._curr_line += 1
+                self._curr_index_in_line = 0
 
     def program_finished(self) -> bool:
         return self._curr_symbol_index >= self._text_len
@@ -135,19 +150,21 @@ class Lexer:
         elif curr_sym == '"':
             # string literal
             # next_tok = Lexer.Token(Lexer.STRING_LITERAL, "some raw string here")
+            first_quote_line = self._curr_line
+            first_quote_index_in_line = self._curr_index_in_line
             string_literal = ""
 
             while True:
                 self.next_symbol()
                 if self.program_finished():
-                    raise Lexer.QuotesNotClosed()
+                    raise Lexer.QuotesNotClosed(first_quote_line, first_quote_index_in_line)
 
                 curr_sym = self.get_curr_symbol()
 
                 if curr_sym == '\\':
                     self.next_symbol()
                     if self.program_finished():
-                        raise Lexer.QuotesNotClosed()
+                        raise Lexer.QuotesNotClosed(first_quote_line, first_quote_index_in_line)
                     curr_sym = self.get_curr_symbol()
                     string_literal += '\\' + curr_sym
                     continue
@@ -184,7 +201,7 @@ class Lexer:
             else:
                 next_tok = Lexer.Token(Lexer.NUM_INT, num_str)
         else:
-            raise Lexer.UnknownSymbol(curr_sym)
+            raise Lexer.UnknownSymbol(curr_sym, self._curr_line, self._curr_index_in_line)
 
         return next_tok
 
@@ -198,7 +215,7 @@ class Lexer:
                 break
             except Lexer.LexerError as err:
                 # TODO: replace symbol number with LINE and POSITION IN LINE
-                print(f"LEXER ERROR:\n\t{err.message} (symbol number: {self._curr_symbol_index})")
+                print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
 
         return ret
