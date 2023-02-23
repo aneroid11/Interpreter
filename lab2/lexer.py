@@ -205,13 +205,16 @@ class Lexer:
 
         return next_tok
 
-    def sym_table_has(self, sym_table: List[Symbol], sym: Symbol) -> bool:
+    def index_in_sym_table(self, sym_table: List[Symbol], sym: Symbol) -> int:
+        index = 0
+
         for s in sym_table:
             if s.scope == sym.scope and s.identifier == sym.identifier:
                 # they are variables with the same name in the same scope
-                return True
+                return index
+            index += 1
 
-        return False
+        return -1
 
     def create_symbol_table(self, tokens: List[Token]) -> List[Symbol]:
         # change the list of tokens so the value for identifiers will be an index in the symbol table
@@ -224,9 +227,14 @@ class Lexer:
                 symbol_block_id = str(level_of_nesting) + " " + str(block_numbers[level_of_nesting])
 
                 symbol = Symbol(token.value, symbol_block_id, None)
-                if not self.sym_table_has(sym_table, symbol):
+                index = self.index_in_sym_table(sym_table, symbol)
+
+                if index < 0:
                     # add the symbol to sym_table
                     sym_table.append(symbol)
+                    index = len(sym_table) - 1
+
+                token.value = index
             elif token.type == Lexer.LBRACE:
                 level_of_nesting += 1
                 if level_of_nesting >= len(block_numbers):
