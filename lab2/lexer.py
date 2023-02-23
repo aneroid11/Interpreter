@@ -80,9 +80,11 @@ class Lexer:
             super().__init__(self.message, line, index)
 
     class Token:
-        def __init__(self, tp=None, vl=None):
-            self.type = tp
-            self.value = vl
+        def __init__(self, type, value, line: int, index: int):
+            self.type = type
+            self.value = value
+            self.line = line
+            self.index = index
 
     def __init__(self, file_name: str):
         with open(file_name) as f:
@@ -127,9 +129,13 @@ class Lexer:
         # print("curr_sym = " + curr_sym)
 
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
-            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None)
+            line, index = self._curr_line, self._curr_index_in_line
+
+            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, self._curr_line, self._curr_index_in_line)
             self.next_symbol()
         elif curr_sym.isalpha():
+            line, index = self._curr_line, self._curr_index_in_line
+
             # read a 'word'
             word = curr_sym
             self.next_symbol()
@@ -143,28 +149,29 @@ class Lexer:
             # we have the word. what to do now?
             if word in Lexer.KEYWORDS.keys():
                 # keyword
-                next_tok = Lexer.Token(Lexer.KEYWORDS[word], None)
+                next_tok = Lexer.Token(Lexer.KEYWORDS[word], None, line, index)
             else:
                 # identifier
-                next_tok = Lexer.Token(Lexer.IDENTIFIER, word)
+                # add WORD into the symbol table
+                next_tok = Lexer.Token(Lexer.IDENTIFIER, word, line, index)
         elif curr_sym == '"':
             # string literal
             # next_tok = Lexer.Token(Lexer.STRING_LITERAL, "some raw string here")
-            first_quote_line = self._curr_line
-            first_quote_index_in_line = self._curr_index_in_line
+            line, index = self._curr_line, self._curr_index_in_line
+
             string_literal = ""
 
             while True:
                 self.next_symbol()
                 if self.program_finished():
-                    raise Lexer.QuotesNotClosed(first_quote_line, first_quote_index_in_line)
+                    raise Lexer.QuotesNotClosed(line, index)
 
                 curr_sym = self.get_curr_symbol()
 
                 if curr_sym == '\\':
                     self.next_symbol()
                     if self.program_finished():
-                        raise Lexer.QuotesNotClosed(first_quote_line, first_quote_index_in_line)
+                        raise Lexer.QuotesNotClosed(line, index)
                     curr_sym = self.get_curr_symbol()
                     string_literal += '\\' + curr_sym
                     continue
@@ -175,8 +182,10 @@ class Lexer:
 
                 string_literal += curr_sym
 
-            next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal)
+            next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal, line, index)
         elif curr_sym.isdigit():
+            line, index = self._curr_line, self._curr_index_in_line
+
             num_str = ""
             has_dot = False
 
@@ -197,9 +206,9 @@ class Lexer:
                         break
 
             if has_dot:
-                next_tok = Lexer.Token(Lexer.NUM_DOUBLE, num_str)
+                next_tok = Lexer.Token(Lexer.NUM_DOUBLE, num_str, line, index)
             else:
-                next_tok = Lexer.Token(Lexer.NUM_INT, num_str)
+                next_tok = Lexer.Token(Lexer.NUM_INT, num_str, line, index)
         else:
             raise Lexer.UnknownSymbol(curr_sym, self._curr_line, self._curr_index_in_line)
 
@@ -238,9 +247,9 @@ class Lexer:
             elif token.type == Lexer.LBRACE:
                 level_of_nesting += 1
                 if level_of_nesting >= len(block_numbers):
-                    block_numbers.append(-1)
-
-                block_numbers[level_of_nesting] += 1
+                    block_numbers.append(0)
+                else:
+                    block_numbers[level_of_nesting] += 1
             elif token.type == Lexer.RBRACE:
                 level_of_nesting -= 1
 
