@@ -4,7 +4,7 @@ from typing import List
 
 def main():
     lexer = Lexer("program.cmm")
-    tokens: List[Lexer.Token] = lexer.split_program_into_tokens()
+    tokens, symbol_table = lexer.split_program_into_tokens()
 
     for tok in tokens:
         print(tok.type)

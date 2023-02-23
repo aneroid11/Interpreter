@@ -1,4 +1,5 @@
-from typing import List
+from typing import List, Tuple
+from symbol import Symbol
 import sys
 
 
@@ -204,7 +205,11 @@ class Lexer:
 
         return next_tok
 
-    def split_program_into_tokens(self) -> List[Token]:
+    def create_symbol_table(self, tokens: List[Token]) -> List[Symbol]:
+        # change the list of tokens so the value for identifiers will be an index in the symbol table
+        return []
+
+    def split_program_into_tokens(self) -> Tuple[List[Token], List[Symbol]]:
         ret = []
 
         while True:
@@ -213,8 +218,9 @@ class Lexer:
             except Lexer.NoMoreTokens:
                 break
             except Lexer.LexerError as err:
-                # TODO: replace symbol number with LINE and POSITION IN LINE
                 print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
 
-        return ret
+        symbol_table = self.create_symbol_table(ret)
+        return ret, symbol_table
+    
