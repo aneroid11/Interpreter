@@ -65,6 +65,13 @@ class Lexer:
             self.index = index
             super().__init__(message)
 
+    class NoMatchingLeftBrace(LexerError):
+        def __init__(self, line: int, index: int):
+            self.message = "no matching left brace"
+            self.line = line
+            self.index = index
+            super().__init__(self.message, line, index)
+
     class QuotesNotClosed(LexerError):
         def __init__(self, line: int, index: int):
             self.message = "quotes not closed"
@@ -253,6 +260,9 @@ class Lexer:
             elif token.type == Lexer.RBRACE:
                 level_of_nesting -= 1
 
+                if level_of_nesting < 0:
+                    raise Lexer.NoMatchingLeftBrace(token.line, token.index)
+
         return sym_table
 
     def split_program_into_tokens(self) -> Tuple[List[Token], List[Symbol]]:
@@ -267,5 +277,10 @@ class Lexer:
                 print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
 
-        symbol_table = self.create_symbol_table(ret)
+        try:
+            symbol_table = self.create_symbol_table(ret)
+        except Lexer.NoMatchingLeftBrace as err:
+            print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
+            sys.exit(1)
+
         return ret, symbol_table
