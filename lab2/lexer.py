@@ -76,16 +76,10 @@ class Lexer:
             super().__init__(message)
 
     class InvalidEscapeSequence(LexerError):
-        def __init__(self, string: str, line: int, index: int):
-            msg = ""
-
-            try:
-                print(bytes(string, "utf-8").decode("unicode_escape"))
-            except DeprecationWarning as err:
-                err_str = str(err)
-                # print(err_str[err_str.find("invalid escape sequence"):-1])
-                msg = err_str[err_str.find("invalid escape sequence"):-1]
-
+        def __init__(self, msg: str, line: int, index: int):
+            self.message = msg
+            self.line = line
+            self.index = index
             super().__init__(msg, line, index)
 
     class NoMatchingLeftBrace(LexerError):
@@ -211,6 +205,13 @@ class Lexer:
                     break
 
                 string_literal += curr_sym
+
+            try:
+                _ = bytes(string_literal, "utf-8").decode("unicode_escape")
+            except DeprecationWarning as err:
+                err_str = str(err)
+                msg = err_str[err_str.find("invalid escape sequence"):-1]
+                raise Lexer.InvalidEscapeSequence(msg, line, index)
 
             next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal, line, index)
         elif curr_sym.isdigit():
