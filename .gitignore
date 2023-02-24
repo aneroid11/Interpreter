@@ -1,7 +1,9 @@
 *.docx
 *.pdf
+*.odt
 lab1
 .idea
 *.cmm
 *.kate*
 __pycache__
+.~lock*

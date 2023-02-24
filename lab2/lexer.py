@@ -1,6 +1,9 @@
 from typing import List, Tuple
 from symbol import Symbol
+from warnings import filterwarnings
 import sys
+
+filterwarnings("error")
 
 
 class Lexer:
@@ -9,6 +12,13 @@ class Lexer:
         SCAN, PRINT, ATOI, ATOB, ATOF, TO_STRING, TRUE, FALSE, PLUS, MINUS, MULT, DIV, MOD, \
         COMMA, SEMICOLON, LBRACKET, RBRACKET, LBRACE, RBRACE, EQUAL, LESS, MORE, AND, OR, NOT, \
         IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(41)
+
+    TYPES_OF_TOKENS = (
+        'INT', 'DOUBLE', 'BOOL', 'STRING', 'WHILE', 'FOR', 'IF', 'ELSE', 'SWITCH', 'CASE', 'BREAK', 'DEFAULT',
+        'SCAN', 'PRINT', 'ATOI', 'ATOB', 'ATOF', 'TO_STRING', 'TRUE', 'FALSE', 'PLUS', 'MINUS', 'MULT', 'DIV', 'MOD',
+        'COMMA', 'SEMICOLON', 'LBRACKET', 'RBRACKET', 'LBRACE', 'RBRACE', 'EQUAL', 'LESS', 'MORE', 'AND', 'OR', 'NOT',
+        'IDENTIFIER', 'NUM_INT', 'NUM_DOUBLE', 'STRING_LITERAL'
+    )
 
     WHITESPACES = (' ', '\t', '\n')
 
@@ -64,6 +74,19 @@ class Lexer:
             self.line = line
             self.index = index
             super().__init__(message)
+
+    class InvalidEscapeSequence(LexerError):
+        def __init__(self, string: str, line: int, index: int):
+            msg = ""
+
+            try:
+                print(bytes(string, "utf-8").decode("unicode_escape"))
+            except DeprecationWarning as err:
+                err_str = str(err)
+                # print(err_str[err_str.find("invalid escape sequence"):-1])
+                msg = err_str[err_str.find("invalid escape sequence"):-1]
+
+            super().__init__(msg, line, index)
 
     class NoMatchingLeftBrace(LexerError):
         def __init__(self, line: int, index: int):
@@ -265,7 +288,7 @@ class Lexer:
 
         return sym_table
 
-    def split_program_into_tokens(self) -> Tuple[List[Token], List[Symbol]]:
+    def split_program_into_tokens(self) -> List[Token]:
         ret = []
 
         while True:
@@ -277,10 +300,12 @@ class Lexer:
                 print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
 
+        """
         try:
             symbol_table = self.create_symbol_table(ret)
         except Lexer.NoMatchingLeftBrace as err:
             print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
             sys.exit(1)
+        """
 
-        return ret, symbol_table
+        return ret
