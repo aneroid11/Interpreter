@@ -81,32 +81,36 @@ class Lexer:
             self.index = index
             super().__init__(message)
 
+    class Expected(LexerError):
+        def __init__(self, sym: str, line: int, index: int):
+            super().__init__(f"'{sym}' expected", line, index)
+
     class InvalidEscapeSequence(LexerError):
         def __init__(self, msg: str, line: int, index: int):
-            self.message = msg
+            """self.message = msg
             self.line = line
-            self.index = index
+            self.index = index"""
             super().__init__(msg, line, index)
 
     class NoMatchingLeftBrace(LexerError):
         def __init__(self, line: int, index: int):
-            self.message = "no matching left brace"
+            """self.message = "no matching left brace"
             self.line = line
-            self.index = index
+            self.index = index"""
             super().__init__(self.message, line, index)
 
     class QuotesNotClosed(LexerError):
         def __init__(self, line: int, index: int):
-            self.message = "quotes not closed"
+            """self.message = "quotes not closed"
             self.line = line
-            self.index = index
+            self.index = index"""
             super().__init__(self.message, line, index)
 
     class UnknownSymbol(LexerError):
         def __init__(self, symbol: str, line: int, index: int):
-            self.line = line
+            """self.line = line
             self.index = index
-            self.message = "unknown symbol: " + symbol
+            self.message = "unknown symbol: " + symbol"""
             super().__init__(self.message, line, index)
 
     class Token:
@@ -123,9 +127,7 @@ class Lexer:
         self._curr_symbol_index = 0
         self._curr_line = 1
         self._curr_index_in_line = 1
-        self._text_len = len(self._program_text) - 1  # EOF in the end?
-
-        # print("END SYMBOL: " + str(ord(self._program_text[self._text_len])))
+        self._text_len = len(self._program_text) - 1
 
     def get_curr_symbol(self) -> str:
         return self._program_text[self._curr_symbol_index]
@@ -158,7 +160,34 @@ class Lexer:
 
         # print("curr_sym = " + curr_sym)
 
-        if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
+        if curr_sym in ('&', '|'):
+            # the next symbol must be the same (we don't have binary operations)
+            line, index = self._curr_line, self._curr_index_in_line
+            op_sym = curr_sym
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            if self.program_finished() or curr_sym != op_sym:
+                raise Lexer.Expected(op_sym, self._curr_line, self._curr_index_in_line)
+
+            op_sym += curr_sym
+            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+            self.next_symbol()
+        elif curr_sym in ('>', '<', '!', '='):
+            line, index = self._curr_line, self._curr_index_in_line
+
+            # there can be a '=' after this
+            op_sym = curr_sym
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            if self.program_finished() or curr_sym != '=':
+                next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+            else:
+                op_sym += curr_sym
+                next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+                self.next_symbol()
+        elif curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             line, index = self._curr_line, self._curr_index_in_line
 
             next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, line, index)
