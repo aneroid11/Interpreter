@@ -11,12 +11,14 @@ class Lexer:
     INT, DOUBLE, BOOL, STRING, WHILE, FOR, IF, ELSE, SWITCH, CASE, BREAK, DEFAULT,\
         SCAN, PRINT, ATOI, ATOB, ATOF, TO_STRING, TRUE, FALSE, PLUS, MINUS, MULT, DIV, MOD, \
         COMMA, SEMICOLON, LBRACKET, RBRACKET, LBRACE, RBRACE, EQUAL, LESS, MORE, AND, OR, NOT, \
-        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(41)
+        EQUAL_EQUAL, LESS_OR_EQUAL, MORE_OR_EQUAL, NOT_EQUAL, \
+        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(45)
 
     TYPES_OF_TOKENS = (
         'INT', 'DOUBLE', 'BOOL', 'STRING', 'WHILE', 'FOR', 'IF', 'ELSE', 'SWITCH', 'CASE', 'BREAK', 'DEFAULT',
         'SCAN', 'PRINT', 'ATOI', 'ATOB', 'ATOF', 'TO_STRING', 'TRUE', 'FALSE', 'PLUS', 'MINUS', 'MULT', 'DIV', 'MOD',
         'COMMA', 'SEMICOLON', 'LBRACKET', 'RBRACKET', 'LBRACE', 'RBRACE', 'EQUAL', 'LESS', 'MORE', 'AND', 'OR', 'NOT',
+        'EQUAL_EQUAL', 'LESS_OR_EQUAL', 'MORE_OR_EQUAL', 'NOT_EQUAL',
         'IDENTIFIER', 'NUM_INT', 'NUM_DOUBLE', 'STRING_LITERAL'
     )
 
@@ -35,11 +37,15 @@ class Lexer:
         '{': LBRACE,
         '}': RBRACE,
         '=': EQUAL,
+        '==': EQUAL_EQUAL,
         '<': LESS,
+        '<=': LESS_OR_EQUAL,
         '>': MORE,
-        '&': AND,
-        '|': OR,
-        '!': NOT
+        '>=': MORE_OR_EQUAL,
+        '&&': AND,
+        '||': OR,
+        '!': NOT,
+        '!=': NOT_EQUAL
     }
 
     KEYWORDS = {
@@ -155,7 +161,7 @@ class Lexer:
         if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
             line, index = self._curr_line, self._curr_index_in_line
 
-            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, self._curr_line, self._curr_index_in_line)
+            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, line, index)
             self.next_symbol()
         elif curr_sym.isalpha():
             line, index = self._curr_line, self._curr_index_in_line
