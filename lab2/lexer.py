@@ -97,21 +97,21 @@ class Lexer:
             """self.message = "no matching left brace"
             self.line = line
             self.index = index"""
-            super().__init__(self.message, line, index)
+            super().__init__("no matching left brace", line, index)
 
     class QuotesNotClosed(LexerError):
         def __init__(self, line: int, index: int):
             """self.message = "quotes not closed"
             self.line = line
             self.index = index"""
-            super().__init__(self.message, line, index)
+            super().__init__("quotes not closed", line, index)
 
     class UnknownSymbol(LexerError):
         def __init__(self, symbol: str, line: int, index: int):
             """self.line = line
             self.index = index
             self.message = "unknown symbol: " + symbol"""
-            super().__init__(self.message, line, index)
+            super().__init__("unknown symbol: " + symbol, line, index)
 
     class Token:
         def __init__(self, type, value, line: int, index: int):
