@@ -87,31 +87,23 @@ class Lexer:
 
     class InvalidEscapeSequence(LexerError):
         def __init__(self, msg: str, line: int, index: int):
-            """self.message = msg
-            self.line = line
-            self.index = index"""
             super().__init__(msg, line, index)
 
     class NoMatchingLeftBrace(LexerError):
         def __init__(self, line: int, index: int):
-            """self.message = "no matching left brace"
-            self.line = line
-            self.index = index"""
             super().__init__("no matching left brace", line, index)
 
     class QuotesNotClosed(LexerError):
         def __init__(self, line: int, index: int):
-            """self.message = "quotes not closed"
-            self.line = line
-            self.index = index"""
             super().__init__("quotes not closed", line, index)
 
     class UnknownSymbol(LexerError):
         def __init__(self, symbol: str, line: int, index: int):
-            """self.line = line
-            self.index = index
-            self.message = "unknown symbol: " + symbol"""
             super().__init__("unknown symbol: " + symbol, line, index)
+
+    class UnexpectedNumberEnding(LexerError):
+        def __init__(self, sym: str, line: int, index: int):
+            super().__init__(f"unexpected number ending: {sym}", line, index)
 
     class Token:
         def __init__(self, type, value, line: int, index: int):
@@ -161,7 +153,7 @@ class Lexer:
         # print("curr_sym = " + curr_sym)
 
         if curr_sym in ('&', '|'):
-            # the next symbol must be the same (we don't have binary operations)
+            # the next symbol must be the same (we don't have bitwise operations)
             line, index = self._curr_line, self._curr_index_in_line
             op_sym = curr_sym
             self.next_symbol()
@@ -264,6 +256,8 @@ class Lexer:
                 curr_sym = self.get_curr_symbol()
 
                 if not curr_sym.isdigit() and curr_sym != '.':
+                    if curr_sym.isalpha() or curr_sym == '_':
+                        raise Lexer.UnexpectedNumberEnding(curr_sym, self._curr_line, self._curr_index_in_line)
                     break
                 if curr_sym == '.':
                     if not has_dot:
