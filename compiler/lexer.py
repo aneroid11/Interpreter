@@ -1,6 +1,9 @@
 from typing import List, Tuple
 from symbol import Symbol
+from warnings import filterwarnings
 import sys
+
+filterwarnings("error")
 
 
 class Lexer:
@@ -8,7 +11,16 @@ class Lexer:
     INT, DOUBLE, BOOL, STRING, WHILE, FOR, IF, ELSE, SWITCH, CASE, BREAK, DEFAULT,\
         SCAN, PRINT, ATOI, ATOB, ATOF, TO_STRING, TRUE, FALSE, PLUS, MINUS, MULT, DIV, MOD, \
         COMMA, SEMICOLON, LBRACKET, RBRACKET, LBRACE, RBRACE, EQUAL, LESS, MORE, AND, OR, NOT, \
-        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(41)
+        EQUAL_EQUAL, LESS_OR_EQUAL, MORE_OR_EQUAL, NOT_EQUAL, COLON, \
+        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(46)
+
+    TYPES_OF_TOKENS = (
+        'INT', 'DOUBLE', 'BOOL', 'STRING', 'WHILE', 'FOR', 'IF', 'ELSE', 'SWITCH', 'CASE', 'BREAK', 'DEFAULT',
+        'SCAN', 'PRINT', 'ATOI', 'ATOB', 'ATOF', 'TO_STRING', 'TRUE', 'FALSE', 'PLUS', 'MINUS', 'MULT', 'DIV', 'MOD',
+        'COMMA', 'SEMICOLON', 'LBRACKET', 'RBRACKET', 'LBRACE', 'RBRACE', 'EQUAL', 'LESS', 'MORE', 'AND', 'OR', 'NOT',
+        'EQUAL_EQUAL', 'LESS_OR_EQUAL', 'MORE_OR_EQUAL', 'NOT_EQUAL', 'COLON',
+        'IDENTIFIER', 'NUM_INT', 'NUM_DOUBLE', 'STRING_LITERAL'
+    )
 
     WHITESPACES = (' ', '\t', '\n')
 
@@ -19,17 +31,22 @@ class Lexer:
         '/': DIV,
         '%': MOD,
         ',': COMMA,
+        ':': COLON,
         ';': SEMICOLON,
         '(': LBRACKET,
         ')': RBRACKET,
         '{': LBRACE,
         '}': RBRACE,
         '=': EQUAL,
+        '==': EQUAL_EQUAL,
         '<': LESS,
+        '<=': LESS_OR_EQUAL,
         '>': MORE,
-        '&': AND,
-        '|': OR,
-        '!': NOT
+        '>=': MORE_OR_EQUAL,
+        '&&': AND,
+        '||': OR,
+        '!': NOT,
+        '!=': NOT_EQUAL
     }
 
     KEYWORDS = {
@@ -65,26 +82,29 @@ class Lexer:
             self.index = index
             super().__init__(message)
 
+    class Expected(LexerError):
+        def __init__(self, sym: str, line: int, index: int):
+            super().__init__(f"'{sym}' expected", line, index)
+
+    class InvalidEscapeSequence(LexerError):
+        def __init__(self, msg: str, line: int, index: int):
+            super().__init__(msg, line, index)
+
     class NoMatchingLeftBrace(LexerError):
         def __init__(self, line: int, index: int):
-            self.message = "no matching left brace"
-            self.line = line
-            self.index = index
-            super().__init__(self.message, line, index)
+            super().__init__("no matching left brace", line, index)
 
     class QuotesNotClosed(LexerError):
         def __init__(self, line: int, index: int):
-            self.message = "quotes not closed"
-            self.line = line
-            self.index = index
-            super().__init__(self.message, line, index)
+            super().__init__("quotes not closed", line, index)
 
     class UnknownSymbol(LexerError):
         def __init__(self, symbol: str, line: int, index: int):
-            self.line = line
-            self.index = index
-            self.message = "unknown symbol: " + symbol
-            super().__init__(self.message, line, index)
+            super().__init__("unknown symbol: " + symbol, line, index)
+
+    class UnexpectedNumberEnding(LexerError):
+        def __init__(self, sym: str, line: int, index: int):
+            super().__init__(f"unexpected number ending: {sym}", line, index)
 
     class Token:
         def __init__(self, type, value, line: int, index: int):
@@ -100,9 +120,7 @@ class Lexer:
         self._curr_symbol_index = 0
         self._curr_line = 1
         self._curr_index_in_line = 1
-        self._text_len = len(self._program_text) - 1  # EOF in the end?
-
-        # print("END SYMBOL: " + str(ord(self._program_text[self._text_len])))
+        self._text_len = len(self._program_text) - 1
 
     def get_curr_symbol(self) -> str:
         return self._program_text[self._curr_symbol_index]
@@ -135,10 +153,37 @@ class Lexer:
 
         # print("curr_sym = " + curr_sym)
 
-        if curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
+        if curr_sym in ('&', '|'):
+            # the next symbol must be the same (we don't have bitwise operations)
+            line, index = self._curr_line, self._curr_index_in_line
+            op_sym = curr_sym
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            if self.program_finished() or curr_sym != op_sym:
+                raise Lexer.Expected(op_sym, self._curr_line, self._curr_index_in_line)
+
+            op_sym += curr_sym
+            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+            self.next_symbol()
+        elif curr_sym in ('>', '<', '!', '='):
             line, index = self._curr_line, self._curr_index_in_line
 
-            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, self._curr_line, self._curr_index_in_line)
+            # there can be a '=' after this
+            op_sym = curr_sym
+            self.next_symbol()
+            curr_sym = self.get_curr_symbol()
+
+            if self.program_finished() or curr_sym != '=':
+                next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+            else:
+                op_sym += curr_sym
+                next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
+                self.next_symbol()
+        elif curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
+            line, index = self._curr_line, self._curr_index_in_line
+
+            next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[curr_sym], None, line, index)
             self.next_symbol()
         elif curr_sym.isalpha():
             line, index = self._curr_line, self._curr_index_in_line
@@ -189,6 +234,13 @@ class Lexer:
 
                 string_literal += curr_sym
 
+            try:
+                _ = bytes(string_literal, "utf-8").decode("unicode_escape")
+            except DeprecationWarning as err:
+                err_str = str(err)
+                msg = err_str[err_str.find("invalid escape sequence"):-1]
+                raise Lexer.InvalidEscapeSequence(msg, line, index)
+
             next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal, line, index)
         elif curr_sym.isdigit():
             line, index = self._curr_line, self._curr_index_in_line
@@ -205,6 +257,8 @@ class Lexer:
                 curr_sym = self.get_curr_symbol()
 
                 if not curr_sym.isdigit() and curr_sym != '.':
+                    if curr_sym.isalpha() or curr_sym == '_':
+                        raise Lexer.UnexpectedNumberEnding(curr_sym, self._curr_line, self._curr_index_in_line)
                     break
                 if curr_sym == '.':
                     if not has_dot:
@@ -265,7 +319,7 @@ class Lexer:
 
         return sym_table
 
-    def split_program_into_tokens(self) -> Tuple[List[Token], List[Symbol]]:
+    def split_program_into_tokens(self) -> List[Token]:
         ret = []
 
         while True:
@@ -277,10 +331,12 @@ class Lexer:
                 print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
 
+        """
         try:
             symbol_table = self.create_symbol_table(ret)
         except Lexer.NoMatchingLeftBrace as err:
             print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
             sys.exit(1)
+        """
 
-        return ret, symbol_table
+        return ret
