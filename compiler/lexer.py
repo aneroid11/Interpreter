@@ -14,6 +14,7 @@ class Lexer:
         EQUAL_EQUAL, LESS_OR_EQUAL, MORE_OR_EQUAL, NOT_EQUAL, COLON, \
         IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(46)
 
+    # only for printing
     TYPES_OF_TOKENS = (
         'INT', 'DOUBLE', 'BOOL', 'STRING', 'WHILE', 'FOR', 'IF', 'ELSE', 'SWITCH', 'CASE', 'BREAK', 'DEFAULT',
         'SCAN', 'PRINT', 'ATOI', 'ATOB', 'ATOF', 'TO_STRING', 'TRUE', 'FALSE', 'PLUS', 'MINUS', 'MULT', 'DIV', 'MOD',
