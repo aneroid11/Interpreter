@@ -1,5 +1,6 @@
-from typing import List, Tuple
+from typing import List
 # from symbol import Symbol
+from constant import Constant
 from warnings import filterwarnings
 import sys
 
@@ -91,10 +92,6 @@ class Lexer:
                  constants_table: list):
         with open(file_name) as f:
             self._program_text = f.read() + " "  # + " " IS IMPORTANT!
-
-        # print("the program:")
-        # print(self._program_text)
-        # print("---------------\n\n")
 
         self._curr_symbol_index = 0
         self._curr_line = 1
@@ -236,8 +233,10 @@ class Lexer:
                 raise Lexer.InvalidEscapeSequence(msg, line, index)
 
             # next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal, line, index)
-            append_if_not_in(self._constants_table, string_literal)
-            next_tok = Lexer.Token(self._constants_table, self._constants_table.index(string_literal), line, index)
+            # append_if_not_in(self._constants_table, string_literal)
+            const = Constant(string_literal, Constant.STRING)
+            append_if_not_in(self._constants_table, const)
+            next_tok = Lexer.Token(self._constants_table, self._constants_table.index(const), line, index)
         elif curr_sym.isdigit():
             line, index = self._curr_line, self._curr_index_in_line
 
@@ -262,12 +261,15 @@ class Lexer:
                     else:
                         break
 
-            append_if_not_in(self._constants_table, num_str)
+            # append_if_not_in(self._constants_table, num_str)
 
             if has_dot:
-                next_tok = Lexer.Token(self._constants_table, self._constants_table.index(num_str), line, index)
+                const = Constant(num_str, Constant.DOUBLE)
             else:
-                next_tok = Lexer.Token(self._constants_table, self._constants_table.index(num_str), line, index)
+                const = Constant(num_str, Constant.INT)
+
+            append_if_not_in(self._constants_table, const)
+            next_tok = Lexer.Token(self._constants_table, self._constants_table.index(const), line, index)
         else:
             raise Lexer.UnknownSymbol(curr_sym, self._curr_line, self._curr_index_in_line)
 

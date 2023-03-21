@@ -1,5 +1,6 @@
 import sys
 
+from constant import Constant
 from lexer import Lexer
 from typing import List
 
@@ -86,12 +87,18 @@ class Parser:
 
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
-        if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
+        # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
+        if tok.table is not self._consts_tbl or tok.value().type not in (Constant.DOUBLE, Constant.INT):
             raise Parser.Expected("number", tok.line, tok.index)
+
+    def _match_string(self, tok: Lexer.Token):
+        """Check that this token is a string"""
+        if tok.table is not self._consts_tbl or tok.value().type != Constant.STRING:
+            raise Parser.Expected("string", tok.line, tok.index)
 
     def _match_operator(self, tok: Lexer.Token, op_str: str):
         if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
-            raise Parser.Expected("'+'", tok.line, tok.index)
+            raise Parser.Expected(op_str, tok.line, tok.index)
 
     def _match_identifier(self, tok: Lexer.Token):
         if tok.table is not self._idents_tbl:
@@ -104,20 +111,40 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
+    def _parse_atoifb(self):
+        tok = self._curr_tok()
+        if tok.table is not self._keywords_tbl or tok.value() not in ("atoi", "atof", "atob"):
+            raise Parser.Expected("atoi, atof or atob", tok.line, tok.index)
+
+        op = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), '(')
+        self._go_to_next_tok()
+        string = self._parse_string_expression()
+        self._match_operator(self._curr_tok(), ')')
+        self._go_to_next_tok()
+
+        op.children = [string]
+        return op
+
     def _parse_factor(self) -> Node:
         tok = self._curr_tok()
 
         if tok.table is self._ops_tbl and tok.value() == '(':
             self._go_to_next_tok()
             ret = self._parse_arithmetic_expression()
-        elif tok.table is self._consts_tbl and is_number(tok.value()):
-            # self._match_number(tok)
+            self._match_operator(self._curr_tok(), ')')
+            self._go_to_next_tok()
+        elif tok.table is self._consts_tbl and tok.value().type in (Constant.DOUBLE, Constant.INT):
             ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
+        elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
+            ret = self._parse_atoifb()
         else:
             self._match_identifier(tok)
             ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
 
-        self._go_to_next_tok()
         return ret
 
     def _parse_term(self) -> Node:
@@ -157,6 +184,13 @@ class Parser:
             term1 = op
 
         return term1
+
+    def _parse_string_expression(self) -> Node:
+        tok = self._curr_tok()
+        self._match_string(tok)
+        ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+        self._go_to_next_tok()
+        return ret
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
