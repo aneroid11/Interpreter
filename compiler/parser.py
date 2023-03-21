@@ -125,8 +125,23 @@ class Parser:
 
         return num1
 
+    def _parse_signed_term(self) -> Node:
+        tok = self._curr_tok()
+        sign = None
+        if self._is_addop(tok):
+            sign = self._parse_operator(tok.value())
+
+        term = self._parse_term()
+
+        if sign is None:
+            return term
+
+        sign.children = [term]
+        return sign
+
     def _parse_arithmetic_expression(self) -> Node:
-        term1 = self._parse_term()
+        # term1 = self._parse_term()
+        term1 = self._parse_signed_term()
 
         while not self._no_more_tokens() and self._is_addop(self._curr_tok()):
             opval = self._curr_tok().value()
