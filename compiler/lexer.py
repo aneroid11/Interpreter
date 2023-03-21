@@ -6,6 +6,11 @@ import sys
 filterwarnings("error")
 
 
+def append_if_not_in(table, element):
+    if element not in table:
+        table.append(element)
+
+
 class Lexer:
     WHITESPACES = (' ', '\t', '\n')
 
@@ -84,10 +89,15 @@ class Lexer:
         with open(file_name) as f:
             self._program_text = f.read()
 
+        # print("the program:")
+        # print(self._program_text)
+        # print("---------------\n\n")
+
         self._curr_symbol_index = 0
         self._curr_line = 1
         self._curr_index_in_line = 1
-        self._text_len = len(self._program_text) - 1
+        # self._text_len = len(self._program_text) - 1
+        self._text_len = len(self._program_text)
 
         self._idents_table = idents_table
         self._keywords_table = keywords_table
@@ -108,11 +118,9 @@ class Lexer:
                 self._curr_index_in_line = 0
 
     def program_finished(self) -> bool:
+        # print(self._curr_symbol_index)
+        # print(self._text_len)
         return self._curr_symbol_index >= self._text_len
-
-    def append_if_not_in(self, table, element):
-        if element not in table:
-            table.append(element)
 
     def get_next_token(self) -> Token:
         # get the WHOLE TOKEN
@@ -140,7 +148,7 @@ class Lexer:
 
             op_sym += curr_sym
 
-            self.append_if_not_in(self._operators_table, op_sym)
+            append_if_not_in(self._operators_table, op_sym)
             next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
             self.next_symbol()
         elif curr_sym in ('>', '<', '!', '='):
@@ -152,17 +160,17 @@ class Lexer:
             curr_sym = self.get_curr_symbol()
 
             if self.program_finished() or curr_sym != '=':
-                self.append_if_not_in(self._operators_table, op_sym)
+                append_if_not_in(self._operators_table, op_sym)
                 next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
             else:
                 op_sym += curr_sym
-                self.append_if_not_in(self._operators_table, op_sym)
+                append_if_not_in(self._operators_table, op_sym)
                 next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
                 self.next_symbol()
         elif curr_sym in Lexer.SPECIAL_SYMBOLS:
             line, index = self._curr_line, self._curr_index_in_line
 
-            self.append_if_not_in(self._operators_table, curr_sym)
+            append_if_not_in(self._operators_table, curr_sym)
             next_tok = Lexer.Token(self._operators_table, self._operators_table.index(curr_sym), line, index)
             self.next_symbol()
         elif curr_sym.isalpha():
@@ -181,13 +189,13 @@ class Lexer:
             # we have the word. what to do now?
             if word in Lexer.KEYWORDS:
                 # keyword
-                self.append_if_not_in(self._keywords_table, word)
+                append_if_not_in(self._keywords_table, word)
                 next_tok = Lexer.Token(self._keywords_table, self._keywords_table.index(word), line, index)
             else:
                 # identifier
                 # add WORD into the symbol table
                 # next_tok = Lexer.Token(Lexer.IDENTIFIER, word, line, index)
-                self.append_if_not_in(self._idents_table, word)
+                append_if_not_in(self._idents_table, word)
                 next_tok = Lexer.Token(self._idents_table, self._idents_table.index(word), line, index)
         elif curr_sym == '"':
             # string literal
@@ -225,7 +233,7 @@ class Lexer:
                 raise Lexer.InvalidEscapeSequence(msg, line, index)
 
             # next_tok = Lexer.Token(Lexer.STRING_LITERAL, string_literal, line, index)
-            self.append_if_not_in(self._constants_table, string_literal)
+            append_if_not_in(self._constants_table, string_literal)
             next_tok = Lexer.Token(self._constants_table, self._constants_table.index(string_literal), line, index)
         elif curr_sym.isdigit():
             line, index = self._curr_line, self._curr_index_in_line
@@ -251,7 +259,7 @@ class Lexer:
                     else:
                         break
 
-            self.append_if_not_in(self._constants_table, num_str)
+            append_if_not_in(self._constants_table, num_str)
 
             if has_dot:
                 next_tok = Lexer.Token(self._constants_table, self._constants_table.index(num_str), line, index)
