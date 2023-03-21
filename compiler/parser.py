@@ -187,9 +187,16 @@ class Parser:
 
     def _parse_str_term(self) -> Node:
         tok = self._curr_tok()
-        self._match_string(tok)
-        ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
-        self._go_to_next_tok()
+
+        # if tok.table is self._consts_tbl and tok.value().type == Constant.STRING:
+        if tok.table is self._idents_tbl:
+            ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
+        else:
+            self._match_string(tok)
+            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
+
         return ret
 
     def _parse_string_expression(self) -> Node:
