@@ -1,5 +1,5 @@
 from typing import List, Tuple
-from symbol import Symbol
+# from symbol import Symbol
 from warnings import filterwarnings
 import sys
 

@@ -61,3 +61,5 @@ class Compiler:
                         self._keywords_table,
                         self._constants_table)
         parser.create_syntax_tree()
+        print("\nSYNTAX TREE")
+        parser.print_syntax_tree()
