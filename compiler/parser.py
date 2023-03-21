@@ -104,6 +104,10 @@ class Parser:
         if tok.table is not self._idents_tbl:
             raise Parser.Expected("identifier", tok.line, tok.index)
 
+    def _match_keyword(self, tok: Lexer.Token, keyword: str):
+        if tok.table is not self._keywords_tbl or tok.value() != keyword:
+            raise Parser.Expected(keyword, tok.line, tok.index)
+
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, op)
@@ -185,13 +189,32 @@ class Parser:
 
         return term1
 
+    def _parse_to_string(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "to_string")
+        op = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), '(')
+        self._go_to_next_tok()
+
+        # bool_expr, arithm_expr or string_expr
+        # for now, only arithm_expr
+        expr = self._parse_arithmetic_expression()
+        self._match_operator(self._curr_tok(), ')')
+        self._go_to_next_tok()
+
+        op.children = [expr]
+        return op
+
     def _parse_str_term(self) -> Node:
         tok = self._curr_tok()
 
-        # if tok.table is self._consts_tbl and tok.value().type == Constant.STRING:
         if tok.table is self._idents_tbl:
             ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
             self._go_to_next_tok()
+        elif tok.table is self._keywords_tbl and tok.value() == "to_string":
+            ret = self._parse_to_string()
         else:
             self._match_string(tok)
             ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
