@@ -1,4 +1,5 @@
 from lexer import Lexer
+from parser import Parser
 
 
 def print_table(table):
@@ -10,20 +11,22 @@ def print_table(table):
 
 class Compiler:
     def __init__(self, program_name: str):
+        self._program_name = program_name
+
         self._identifiers_table = []
         self._keywords_table = []
         self._operators_table = []
         self._constants_table = []
 
-        self._lexer = Lexer(program_name,
-                            self._identifiers_table,
-                            self._keywords_table,
-                            self._operators_table,
-                            self._constants_table)
-        self._tokens_list = None
+        self._tokens_list = []
 
     def do_lexical_analysis(self):
-        self._tokens_list = self._lexer.split_program_into_tokens()
+        lexer = Lexer(self._program_name,
+                      self._identifiers_table,
+                      self._keywords_table,
+                      self._operators_table,
+                      self._constants_table)
+        self._tokens_list = lexer.split_program_into_tokens()
 
         print("KEYWORDS")
         print_table(self._keywords_table)
@@ -50,3 +53,11 @@ class Compiler:
                 tp = "identifier"
 
             print(f"[{tp}, {tok.index_in_table}], ({tok.line}, {tok.index})", end="\n")
+
+    def do_syntax_analysis(self):
+        parser = Parser(self._tokens_list,
+                        self._operators_table,
+                        self._identifiers_table,
+                        self._keywords_table,
+                        self._constants_table)
+        parser.create_syntax_tree()
