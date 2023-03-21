@@ -7,71 +7,33 @@ filterwarnings("error")
 
 
 class Lexer:
-    # types of tokens
-    INT, DOUBLE, BOOL, STRING, WHILE, FOR, IF, ELSE, SWITCH, CASE, BREAK, DEFAULT,\
-        SCAN, PRINT, ATOI, ATOB, ATOF, TO_STRING, TRUE, FALSE, PLUS, MINUS, MULT, DIV, MOD, \
-        COMMA, SEMICOLON, LBRACKET, RBRACKET, LBRACE, RBRACE, EQUAL, LESS, MORE, AND, OR, NOT, \
-        EQUAL_EQUAL, LESS_OR_EQUAL, MORE_OR_EQUAL, NOT_EQUAL, COLON, \
-        IDENTIFIER, NUM_INT, NUM_DOUBLE, STRING_LITERAL = range(46)
-
-    # only for printing
-    TYPES_OF_TOKENS = (
-        'INT', 'DOUBLE', 'BOOL', 'STRING', 'WHILE', 'FOR', 'IF', 'ELSE', 'SWITCH', 'CASE', 'BREAK', 'DEFAULT',
-        'SCAN', 'PRINT', 'ATOI', 'ATOB', 'ATOF', 'TO_STRING', 'TRUE', 'FALSE', 'PLUS', 'MINUS', 'MULT', 'DIV', 'MOD',
-        'COMMA', 'SEMICOLON', 'LBRACKET', 'RBRACKET', 'LBRACE', 'RBRACE', 'EQUAL', 'LESS', 'MORE', 'AND', 'OR', 'NOT',
-        'EQUAL_EQUAL', 'LESS_OR_EQUAL', 'MORE_OR_EQUAL', 'NOT_EQUAL', 'COLON',
-        'IDENTIFIER', 'NUM_INT', 'NUM_DOUBLE', 'STRING_LITERAL'
-    )
-
     WHITESPACES = (' ', '\t', '\n')
 
-    SPECIAL_SYMBOLS = {
-        '+': PLUS,
-        '-': MINUS,
-        '*': MULT,
-        '/': DIV,
-        '%': MOD,
-        ',': COMMA,
-        ':': COLON,
-        ';': SEMICOLON,
-        '(': LBRACKET,
-        ')': RBRACKET,
-        '{': LBRACE,
-        '}': RBRACE,
-        '=': EQUAL,
-        '==': EQUAL_EQUAL,
-        '<': LESS,
-        '<=': LESS_OR_EQUAL,
-        '>': MORE,
-        '>=': MORE_OR_EQUAL,
-        '&&': AND,
-        '||': OR,
-        '!': NOT,
-        '!=': NOT_EQUAL
-    }
+    SPECIAL_SYMBOLS = ['+', '-', '*', '/', '%', ',', ':', ';', '(', ')',
+                       '{', '}', '=', '==', '<', '<=', '>', '>=', '&&', '||', '!', '!=']
 
-    KEYWORDS = {
-        "int": INT,
-        "double": DOUBLE,
-        "bool": BOOL,
-        "string": STRING,
-        "while": WHILE,
-        "for": FOR,
-        "if": IF,
-        "else": ELSE,
-        "switch": SWITCH,
-        "case": CASE,
-        "break": BREAK,
-        "default": DEFAULT,
-        "scan": SCAN,
-        "print": PRINT,
-        "atoi": ATOI,
-        "atob": ATOB,
-        "atof": ATOF,
-        "to_string": TO_STRING,
-        "true": TRUE,
-        "false": FALSE
-    }
+    KEYWORDS = [
+        "int",
+        "double",
+        "bool",
+        "string",
+        "while",
+        "for",
+        "if",
+        "else",
+        "switch",
+        "case",
+        "break",
+        "default",
+        "scan",
+        "print",
+        "atoi",
+        "atob",
+        "atof",
+        "to_string",
+        "true",
+        "false"
+    ]
 
     class NoMoreTokens(Exception):
         pass
@@ -177,7 +139,6 @@ class Lexer:
                 raise Lexer.Expected(op_sym, self._curr_line, self._curr_index_in_line)
 
             op_sym += curr_sym
-            # next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
 
             self.append_if_not_in(self._operators_table, op_sym)
             next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
@@ -193,13 +154,12 @@ class Lexer:
             if self.program_finished() or curr_sym != '=':
                 self.append_if_not_in(self._operators_table, op_sym)
                 next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
-                # next_tok = Lexer.Token(Lexer.SPECIAL_SYMBOLS[op_sym], None, line, index)
             else:
                 op_sym += curr_sym
                 self.append_if_not_in(self._operators_table, op_sym)
                 next_tok = Lexer.Token(self._operators_table, self._operators_table.index(op_sym), line, index)
                 self.next_symbol()
-        elif curr_sym in Lexer.SPECIAL_SYMBOLS.keys():
+        elif curr_sym in Lexer.SPECIAL_SYMBOLS:
             line, index = self._curr_line, self._curr_index_in_line
 
             self.append_if_not_in(self._operators_table, curr_sym)
@@ -219,7 +179,7 @@ class Lexer:
                 curr_sym = self.get_curr_symbol()
 
             # we have the word. what to do now?
-            if word in Lexer.KEYWORDS.keys():
+            if word in Lexer.KEYWORDS:
                 # keyword
                 self.append_if_not_in(self._keywords_table, word)
                 next_tok = Lexer.Token(self._keywords_table, self._keywords_table.index(word), line, index)
@@ -304,50 +264,6 @@ class Lexer:
 
         return next_tok
 
-    def index_in_sym_table(self, sym_table: List[Symbol], sym: Symbol) -> int:
-        index = 0
-
-        for s in sym_table:
-            if s.scope == sym.scope and s.identifier == sym.identifier:
-                # they are variables with the same name in the same scope
-                return index
-            index += 1
-
-        return -1
-
-    def create_symbol_table(self, tokens: List[Token]) -> List[Symbol]:
-        # change the list of tokens so the value for identifiers will be an index in the symbol table
-        sym_table = []
-        level_of_nesting: int = 0
-        block_numbers = [0]
-
-        for token in tokens:
-            if token.type == Lexer.IDENTIFIER:
-                symbol_block_id = str(level_of_nesting) + " " + str(block_numbers[level_of_nesting])
-
-                symbol = Symbol(token.value, symbol_block_id, None)
-                index = self.index_in_sym_table(sym_table, symbol)
-
-                if index < 0:
-                    # add the symbol to sym_table
-                    sym_table.append(symbol)
-                    index = len(sym_table) - 1
-
-                token.value = index
-            elif token.type == Lexer.LBRACE:
-                level_of_nesting += 1
-                if level_of_nesting >= len(block_numbers):
-                    block_numbers.append(0)
-                else:
-                    block_numbers[level_of_nesting] += 1
-            elif token.type == Lexer.RBRACE:
-                level_of_nesting -= 1
-
-                if level_of_nesting < 0:
-                    raise Lexer.NoMatchingLeftBrace(token.line, token.index)
-
-        return sym_table
-
     def split_program_into_tokens(self) -> List[Token]:
         ret = []
 
@@ -359,13 +275,5 @@ class Lexer:
             except Lexer.LexerError as err:
                 print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
                 sys.exit(1)
-
-        """
-        try:
-            symbol_table = self.create_symbol_table(ret)
-        except Lexer.NoMatchingLeftBrace as err:
-            print(f"LEXER ERROR:\n\t{err.message} ({err.line}:{err.index})")
-            sys.exit(1)
-        """
 
         return ret

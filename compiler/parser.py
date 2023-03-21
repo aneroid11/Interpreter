@@ -1,4 +1,8 @@
 class Parser:
+    class Node:
+        def __init__(self):
+            pass
+
     def __init__(self, tokens, ops_tbl, idents_tbl, keywords_tbl, consts_tbl):
         self._tokens = tokens
         self._ops_tbl = ops_tbl
