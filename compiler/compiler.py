@@ -54,7 +54,7 @@ class Compiler:
                       self._operators_table,
                       self._constants_table)
         self._tokens_list = lexer.split_program_into_tokens()
-        # self._print_lex_statistics()
+        self._print_lex_statistics()
 
     def _print_syntax_statistics(self, parser: Parser):
         print("\nSYNTAX TREE")

@@ -90,7 +90,7 @@ class Lexer:
                  operators_table: list,
                  constants_table: list):
         with open(file_name) as f:
-            self._program_text = f.read()
+            self._program_text = f.read() + " "  # + " " IS IMPORTANT!
 
         # print("the program:")
         # print(self._program_text)
@@ -99,8 +99,8 @@ class Lexer:
         self._curr_symbol_index = 0
         self._curr_line = 1
         self._curr_index_in_line = 1
-        # self._text_len = len(self._program_text) - 1
-        self._text_len = len(self._program_text)
+        self._text_len = len(self._program_text) - 1  # - 1 IS IMPORTANT!
+        # self._text_len = len(self._program_text)
 
         self._idents_table = idents_table
         self._keywords_table = keywords_table
