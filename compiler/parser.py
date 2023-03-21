@@ -78,6 +78,12 @@ class Parser:
     def print_syntax_tree(self):
         print_tree(self._syntax_tree)
 
+    def _is_addop(self, tok: Lexer.Token) -> bool:
+        return tok.table is self._ops_tbl and tok.value() in ('+', '-')
+
+    def _is_mulop(self, tok: Lexer.Token) -> bool:
+        return tok.table is self._ops_tbl and tok.value() in ('*', '/', '%')
+
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         if tok.table is not self._consts_tbl or is_not_number(tok.table[tok.index_in_table]):
@@ -94,34 +100,36 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
-    def _parse_plus(self) -> Node:
+    def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
-        self._match_operator(tok, '+')
+        self._match_operator(tok, op)
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
         self._go_to_next_tok()
         return ret
 
-    def _parse_minus(self) -> Node:
-        tok = self._curr_tok()
-        self._match_operator(tok, '-')
-        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
-        self._go_to_next_tok()
-        return ret
-
-    def _is_addop(self, tok: Lexer.Token) -> bool:
-        return tok.table is self._ops_tbl and tok.table[tok.index_in_table] in ('+', '-')
-
-    def _parse_arithmetic_expression(self) -> Node:
-        # for now, an arithmetic expression is <number> +/- <number>
+    def _parse_term(self) -> Node:
         num1 = self._parse_number()
 
-        while not self._no_more_tokens() and self._is_addop(self._curr_tok()):
-            op = self._parse_plus() if self._curr_tok().value() == '+' else self._parse_minus()
+        while not self._no_more_tokens() and self._is_mulop(self._curr_tok()):
+            opval = self._curr_tok().value()
+            op = self._parse_operator(opval)
             num2 = self._parse_number()
             op.children = [num1, num2]
             num1 = op
 
         return num1
+
+    def _parse_arithmetic_expression(self) -> Node:
+        term1 = self._parse_term()
+
+        while not self._no_more_tokens() and self._is_addop(self._curr_tok()):
+            opval = self._curr_tok().value()
+            op = self._parse_operator(opval)
+            term2 = self._parse_term()
+            op.children = [term1, term2]
+            term1 = op
+
+        return term1
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
