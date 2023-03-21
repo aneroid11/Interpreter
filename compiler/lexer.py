@@ -254,10 +254,8 @@ class Lexer:
             self.append_if_not_in(self._constants_table, num_str)
 
             if has_dot:
-                # next_tok = Lexer.Token(Lexer.NUM_DOUBLE, num_str, line, index)
                 next_tok = Lexer.Token(self._constants_table, self._constants_table.index(num_str), line, index)
             else:
-                # next_tok = Lexer.Token(Lexer.NUM_INT, num_str, line, index)
                 next_tok = Lexer.Token(self._constants_table, self._constants_table.index(num_str), line, index)
         else:
             raise Lexer.UnknownSymbol(curr_sym, self._curr_line, self._curr_index_in_line)
