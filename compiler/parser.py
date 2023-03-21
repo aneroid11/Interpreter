@@ -32,6 +32,10 @@ class Parser:
         def __init__(self, expected: str, line: int, index: int):
             super().__init__(f"{expected} expected", line, index)
 
+    class Unexpected(ParserError):
+        def __init(self, what_is_unexpected: str, line: int, index: int):
+            super().__init__(f"unexpected {what_is_unexpected}", line, index)
+
     class Node:
         def __init__(self, tbl=None, index_in_tbl=None, children=None, line: int = 0, index: int = 0):
             if children is None:
@@ -56,19 +60,60 @@ class Parser:
 
         self._syntax_tree = None
 
+    def _go_to_next_tok(self):
+        self._current_token_index += 1
+
+    def _curr_tok(self) -> Lexer.Token:
+        if self._current_token_index >= len(self._tokens):
+            tok = self._tokens[len(self._tokens) - 1]
+            line = tok.line
+            index = tok.index + len(tok.table[tok.index_in_table])
+            raise Parser.Unexpected("end of file", line, index)
+
+        return self._tokens[self._current_token_index]
+
     def print_syntax_tree(self):
         print_tree(self._syntax_tree)
 
-    def _parse_number(self) -> Node:
-        tok = self._tokens[self._current_token_index]
+    def _match_number(self, tok: Lexer.Token):
+        """Check that this token is a number."""
         if tok.table is not self._consts_tbl or is_not_number(tok.table[tok.index_in_table]):
             raise Parser.Expected("number", tok.line, tok.index)
 
-        return Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+    def _match_plus(self, tok: Lexer.Token):
+        """Check that this token is a plus."""
+        if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != '+':
+            raise Parser.Expected("'+'", tok.line, tok.index)
+
+    def _parse_number(self) -> Node:
+        tok = self._curr_tok()
+        self._match_number(tok)
+        ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+        self._go_to_next_tok()
+        return ret
+
+    def _parse_plus(self) -> Node:
+        tok = self._curr_tok()
+        self._match_plus(tok)
+        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+        return ret
+
+    def _parse_arithmetic_expression(self) -> Node:
+        # for now, an arithmetic expression is <number> +/- <number>
+        num1 = self._parse_number()
+        plus = self._parse_plus()
+        num2 = self._parse_number()
+        plus.children = [num1, num2]
+        return plus
 
     def create_syntax_tree(self):
+        if len(self._tokens) == 0:
+            return
+
         try:
-            self._syntax_tree = self._parse_number()
+            # self._syntax_tree = self._parse_number()
+            self._syntax_tree = self._parse_arithmetic_expression()
         except Parser.ParserError as err:
             print(f"PARSER ERROR:\n\t{err.message} ({err.line}:{err.index})")
             sys.exit(1)
