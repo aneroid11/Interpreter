@@ -93,13 +93,6 @@ class Parser:
         if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
             raise Parser.Expected("'+'", tok.line, tok.index)
 
-    def _parse_number(self) -> Node:
-        tok = self._curr_tok()
-        self._match_number(tok)
-        ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
-        self._go_to_next_tok()
-        return ret
-
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, op)
@@ -107,13 +100,26 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
+    def _parse_factor(self) -> Node:
+        tok = self._curr_tok()
+
+        if tok.table is self._ops_tbl and tok.value() == '(':
+            self._go_to_next_tok()
+            ret = self._parse_arithmetic_expression()
+        else:
+            self._match_number(tok)
+            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+
+        self._go_to_next_tok()
+        return ret
+
     def _parse_term(self) -> Node:
-        num1 = self._parse_number()
+        num1 = self._parse_factor()
 
         while not self._no_more_tokens() and self._is_mulop(self._curr_tok()):
             opval = self._curr_tok().value()
             op = self._parse_operator(opval)
-            num2 = self._parse_number()
+            num2 = self._parse_factor()
             op.children = [num1, num2]
             num1 = op
 
