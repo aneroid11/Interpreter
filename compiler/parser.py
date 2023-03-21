@@ -80,9 +80,8 @@ class Parser:
         if tok.table is not self._consts_tbl or is_not_number(tok.table[tok.index_in_table]):
             raise Parser.Expected("number", tok.line, tok.index)
 
-    def _match_plus(self, tok: Lexer.Token):
-        """Check that this token is a plus."""
-        if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != '+':
+    def _match_operator(self, tok: Lexer.Token, op_str: str):
+        if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
             raise Parser.Expected("'+'", tok.line, tok.index)
 
     def _parse_number(self) -> Node:
@@ -94,18 +93,34 @@ class Parser:
 
     def _parse_plus(self) -> Node:
         tok = self._curr_tok()
-        self._match_plus(tok)
+        self._match_operator(tok, '+')
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
         self._go_to_next_tok()
         return ret
 
+    def _parse_minus(self) -> Node:
+        tok = self._curr_tok()
+        self._match_operator(tok, '-')
+        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+        return ret
+
+    def _is_addop(self, tok: Lexer.Token) -> bool:
+        return tok.table is self._ops_tbl and tok.table[tok.index_in_table] in ('+', '-')
+
     def _parse_arithmetic_expression(self) -> Node:
         # for now, an arithmetic expression is <number> +/- <number>
         num1 = self._parse_number()
-        plus = self._parse_plus()
-        num2 = self._parse_number()
-        plus.children = [num1, num2]
-        return plus
+
+        tok = self._curr_tok()
+
+        while self._is_addop(tok):
+            op = self._parse_plus() if tok.value() == '+' else self._parse_minus()
+            num2 = self._parse_number()
+            op.children = [num1, num2]
+            num1 = op
+
+        return num1
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:

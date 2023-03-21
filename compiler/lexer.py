@@ -81,6 +81,9 @@ class Lexer:
             self.line = line
             self.index = index
 
+        def value(self):
+            return self.table[self.index_in_table]
+
     def __init__(self, file_name: str,
                  idents_table: list,
                  keywords_table: list,

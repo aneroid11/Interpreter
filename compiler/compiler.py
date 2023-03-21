@@ -20,14 +20,7 @@ class Compiler:
 
         self._tokens_list = []
 
-    def do_lexical_analysis(self):
-        lexer = Lexer(self._program_name,
-                      self._identifiers_table,
-                      self._keywords_table,
-                      self._operators_table,
-                      self._constants_table)
-        self._tokens_list = lexer.split_program_into_tokens()
-
+    def _print_lex_statistics(self):
         print("KEYWORDS")
         print_table(self._keywords_table)
 
@@ -54,6 +47,19 @@ class Compiler:
 
             print(f"[{tp}, {tok.index_in_table}], ({tok.line}, {tok.index})", end="\n")
 
+    def do_lexical_analysis(self):
+        lexer = Lexer(self._program_name,
+                      self._identifiers_table,
+                      self._keywords_table,
+                      self._operators_table,
+                      self._constants_table)
+        self._tokens_list = lexer.split_program_into_tokens()
+        # self._print_lex_statistics()
+
+    def _print_syntax_statistics(self, parser: Parser):
+        print("\nSYNTAX TREE")
+        parser.print_syntax_tree()
+
     def do_syntax_analysis(self):
         parser = Parser(self._tokens_list,
                         self._operators_table,
@@ -61,5 +67,4 @@ class Compiler:
                         self._keywords_table,
                         self._constants_table)
         parser.create_syntax_tree()
-        print("\nSYNTAX TREE")
-        parser.print_syntax_tree()
+        self._print_syntax_statistics(parser)
