@@ -185,12 +185,27 @@ class Parser:
 
         return term1
 
-    def _parse_string_expression(self) -> Node:
+    def _parse_str_term(self) -> Node:
         tok = self._curr_tok()
         self._match_string(tok)
         ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
         self._go_to_next_tok()
         return ret
+
+    def _parse_string_expression(self) -> Node:
+        term1 = self._parse_str_term()
+
+        while not self._no_more_tokens() and \
+                self._curr_tok().table is self._ops_tbl and \
+                self._curr_tok().value() == '+':
+
+            opval = self._curr_tok().value()
+            op = self._parse_operator(opval)
+            term2 = self._parse_str_term()
+            op.children = [term1, term2]
+            term1 = op
+
+        return term1
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
