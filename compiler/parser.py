@@ -22,7 +22,7 @@ def is_not_number(s: str):
 
 class Parser:
     class ParserError(Exception):
-        def __init__(self, message, line: int, index: int):
+        def __init__(self, message: str, line: int, index: int):
             self.message = message
             self.line = line
             self.index = index
@@ -33,7 +33,7 @@ class Parser:
             super().__init__(f"{expected} expected", line, index)
 
     class Unexpected(ParserError):
-        def __init(self, what_is_unexpected: str, line: int, index: int):
+        def __init__(self, what_is_unexpected: str, line: int, index: int):
             super().__init__(f"unexpected {what_is_unexpected}", line, index)
 
     class Node:
@@ -63,8 +63,11 @@ class Parser:
     def _go_to_next_tok(self):
         self._current_token_index += 1
 
+    def _no_more_tokens(self):
+        return self._current_token_index >= len(self._tokens)
+
     def _curr_tok(self) -> Lexer.Token:
-        if self._current_token_index >= len(self._tokens):
+        if self._no_more_tokens():
             tok = self._tokens[len(self._tokens) - 1]
             line = tok.line
             index = tok.index + len(tok.table[tok.index_in_table])
@@ -112,10 +115,8 @@ class Parser:
         # for now, an arithmetic expression is <number> +/- <number>
         num1 = self._parse_number()
 
-        tok = self._curr_tok()
-
-        while self._is_addop(tok):
-            op = self._parse_plus() if tok.value() == '+' else self._parse_minus()
+        while not self._no_more_tokens() and self._is_addop(self._curr_tok()):
+            op = self._parse_plus() if self._curr_tok().value() == '+' else self._parse_minus()
             num2 = self._parse_number()
             op.children = [num1, num2]
             num1 = op
