@@ -12,12 +12,12 @@ def print_tree(root, depth: int = 0):
         print_tree(child, depth + 1)
 
 
-def is_not_number(s: str):
+def is_number(s: str):
     try:
         float(s)
-        return False
-    except ValueError:
         return True
+    except ValueError:
+        return False
 
 
 class Parser:
@@ -86,12 +86,16 @@ class Parser:
 
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
-        if tok.table is not self._consts_tbl or is_not_number(tok.table[tok.index_in_table]):
+        if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
             raise Parser.Expected("number", tok.line, tok.index)
 
     def _match_operator(self, tok: Lexer.Token, op_str: str):
         if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
             raise Parser.Expected("'+'", tok.line, tok.index)
+
+    def _match_identifier(self, tok: Lexer.Token):
+        if tok.table is not self._idents_tbl:
+            raise Parser.Expected("identifier", tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
@@ -106,9 +110,12 @@ class Parser:
         if tok.table is self._ops_tbl and tok.value() == '(':
             self._go_to_next_tok()
             ret = self._parse_arithmetic_expression()
-        else:
-            self._match_number(tok)
+        elif tok.table is self._consts_tbl and is_number(tok.value()):
+            # self._match_number(tok)
             ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+        else:
+            self._match_identifier(tok)
+            ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
 
         self._go_to_next_tok()
         return ret
@@ -140,7 +147,6 @@ class Parser:
         return sign
 
     def _parse_arithmetic_expression(self) -> Node:
-        # term1 = self._parse_term()
         term1 = self._parse_signed_term()
 
         while not self._no_more_tokens() and self._is_addop(self._curr_tok()):
