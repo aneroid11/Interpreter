@@ -78,6 +78,7 @@ class Parser:
         self._parser_nodes_tbl = ["program", "declare", "compound_statement"]
 
         self._syntax_tree = None
+        self._switch_expression_type = None  # None if we are not parsing switch
 
     def _go_to_next_tok(self):
         self._current_token_index += 1
@@ -254,23 +255,23 @@ class Parser:
 
         return term1
 
-    def _parse_bool_arithm_or_string_expr(self) -> Node:
+    def _parse_bool_arithm_or_string_expr(self) -> Tuple[Node, str]:
         old_tok = self._curr_tok()
         old_token_index = self._current_token_index
 
         try:
             ret = self._parse_arithmetic_expression()
-            return ret
+            return ret, "arithmetic"
         except Parser.ParserError:
             self._current_token_index = old_token_index
             try:
                 ret = self._parse_string_expression()
-                return ret
+                return ret, "string"
             except Parser.ParserError:
                 self._current_token_index = old_token_index
                 try:
                     ret = self._parse_bool_expression()
-                    return ret
+                    return ret, "bool"
                 except Parser.ParserError:
                     raise Parser.Expected("boolean, arithmetic or string expression", old_tok.line, old_tok.index)
 
@@ -286,7 +287,7 @@ class Parser:
         # bool_expr, arithm_expr or string_expr
         # for now, only arithm_expr
         # expr = self._parse_arithmetic_expression()
-        expr = self._parse_bool_arithm_or_string_expr()
+        expr, _ = self._parse_bool_arithm_or_string_expr()
         self._match_operator(self._curr_tok(), ')')
         self._go_to_next_tok()
 
@@ -620,14 +621,16 @@ class Parser:
         self._match_operator(self._curr_tok(), "(")
         self._go_to_next_tok()
 
-        expr_node = self._parse_bool_arithm_or_string_expr()
-        # ident_node = self._parse_identifier()
-        # self._match_var_was_declared(ident_node)
+        expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
+        self._switch_expression_type = expr_type
+        print("switch expression type =", self._switch_expression_type)
 
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
         block_node = self._parse_compound_statement()
+
+        self._switch_expression_type = None
         switch_node.children = [expr_node, block_node]
         return switch_node
 
