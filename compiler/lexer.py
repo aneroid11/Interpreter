@@ -1,6 +1,7 @@
 from typing import List
 # from symbol import Symbol
 from constant import Constant
+from variable import Variable
 from warnings import filterwarnings
 import sys
 
@@ -194,9 +195,9 @@ class Lexer:
             else:
                 # identifier
                 # add WORD into the symbol table
-                # next_tok = Lexer.Token(Lexer.IDENTIFIER, word, line, index)
-                append_if_not_in(self._idents_table, word)
-                next_tok = Lexer.Token(self._idents_table, self._idents_table.index(word), line, index)
+                var = Variable(word, None)
+                append_if_not_in(self._idents_table, var)
+                next_tok = Lexer.Token(self._idents_table, self._idents_table.index(var), line, index)
         elif curr_sym == '"':
             # string literal
             # next_tok = Lexer.Token(Lexer.STRING_LITERAL, "some raw string here")

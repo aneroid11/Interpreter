@@ -1,5 +1,5 @@
 class Variable:
-    def __init__(self, name: str, tp: str):
+    def __init__(self, name: str, tp: str = None):
         self.name = name
         self.type = tp
 
