@@ -249,12 +249,24 @@ class Parser:
 
         return term1
 
-    def _parse_bool_term(self) -> Node:
+    def _parse_bool_factor(self) -> Node:
         tok = self._curr_tok()
         self._match_bool_literal(tok)
         ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
         self._go_to_next_tok()
         return ret
+
+    def _parse_bool_term(self) -> Node:
+        factor1 = self._parse_bool_factor()
+
+        while not self._no_more_tokens() and self._is_operator(self._curr_tok(), '&&'):
+            opval = self._curr_tok().value()
+            op = self._parse_operator(opval)
+            factor2 = self._parse_bool_factor()
+            op.children = [factor1, factor2]
+            factor1 = op
+
+        return factor1
 
     def _parse_bool_expression(self) -> Node:
         term1 = self._parse_bool_term()
