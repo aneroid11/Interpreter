@@ -82,7 +82,11 @@ class Parser:
         self._parser_nodes_tbl = ["program", "declare", "compound_statement"]
 
         self._syntax_tree = None
-        self._switch_expression_type = None  # None if we are not parsing switch
+        self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
+
+        self._current_level = 0
+        self._blocks_on_levels = [1]
+        self._scope_stack = [(0, 1)]
 
     def _go_to_next_tok(self):
         self._current_token_index += 1
@@ -519,9 +523,33 @@ class Parser:
 
         return decl_node
 
+    def _enter_current_block(self):
+        self._current_level += 1
+
+        if self._current_level >= len(self._blocks_on_levels):
+            self._blocks_on_levels.append(0)
+
+        self._blocks_on_levels[self._current_level] += 1
+        block_num = self._blocks_on_levels[self._current_level]
+
+        self._scope_stack.append((self._current_level, block_num))
+
+        print("after entering block: ")
+        print("scope stack:", self._scope_stack)
+
+    def _exit_current_block(self):
+        self._current_level -= 1
+        self._scope_stack.pop()
+
+        print("after exiting block: ")
+        print("scope stack:", self._scope_stack)
+
     def _parse_compound_statement(self) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, '{')
+
+        self._enter_current_block()
+
         self._go_to_next_tok()
         statement = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("compound_statement"),
                                 line=tok.line, index=tok.index)
@@ -530,6 +558,8 @@ class Parser:
             statement.children.append(self._parse_statement())
 
         self._match_operator(self._curr_tok(), '}')
+        self._exit_current_block()
+
         self._go_to_next_tok()
         return statement
 
