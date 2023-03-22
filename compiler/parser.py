@@ -243,7 +243,8 @@ class Parser:
 
         try:
             # self._syntax_tree = self._parse_number()
-            self._syntax_tree = self._parse_arithmetic_expression()
+            # self._syntax_tree = self._parse_arithmetic_expression()
+            self._syntax_tree = self._parse_bool_expression()
         except Parser.ParserError as err:
             print(f"PARSER ERROR:\n\t{err.message} ({err.line}:{err.index})")
             sys.exit(1)
