@@ -379,15 +379,12 @@ class Parser:
 
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
-        elif tok.table is self._idents_tbl:
+        elif tok.table is self._idents_tbl and tok.value().type == "bool":
             ret = self._parse_identifier()
             self._match_var_was_declared(ret)
-            self._match_var_type(ret, "bool")
-        # it is a comparison (or a bool expression, but it is forbidden for now)
-        # but every comparison IS a BOOLEAN EXPRESSION...
+            # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
             self._go_to_next_tok()
-            # ret = self._parse_comparison()
             ret = self._parse_bool_expression()
             self._match_operator(self._curr_tok(), ')')
             self._go_to_next_tok()
@@ -530,9 +527,6 @@ class Parser:
 
         op_node.children = [ident_node, right_part]
 
-        self._match_operator(self._curr_tok(), ';')
-        self._go_to_next_tok()
-
         return op_node
 
     def _parse_if(self) -> Node:
@@ -576,6 +570,39 @@ class Parser:
 
         return while_node
 
+    def _parse_for(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "for")
+        for_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), "(")
+        self._go_to_next_tok()
+
+        # initialization
+        init_node = None
+        if not self._is_operator(self._curr_tok(), ";"):
+            init_node = self._parse_assignment()
+        self._match_operator(self._curr_tok(), ";")
+        self._go_to_next_tok()
+
+        condition_node = None
+        if not self._is_operator(self._curr_tok(), ";"):
+            condition_node = self._parse_bool_expression()
+        self._match_operator(self._curr_tok(), ";")
+        self._go_to_next_tok()
+
+        iteration_node = None
+        if not self._is_operator(self._curr_tok(), ")"):
+            iteration_node = self._parse_assignment()
+        self._match_operator(self._curr_tok(), ")")
+        self._go_to_next_tok()
+
+        body_node = self._parse_statement()
+
+        for_node.children = [init_node, condition_node, iteration_node, body_node]
+        return for_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -585,10 +612,14 @@ class Parser:
             ret = self._parse_if()
         elif self._is_keyword(tok, "while"):
             ret = self._parse_while()
+        elif self._is_keyword(tok, "for"):
+            ret = self._parse_for()
         elif self._is_operator(tok, "{"):
             ret = self._parse_complex_statement()
         elif self._is_identifier(tok):
             ret = self._parse_assignment()
+            self._match_operator(self._curr_tok(), ';')
+            self._go_to_next_tok()
         else:
             ret = self._parse_var_declaration()
 
