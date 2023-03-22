@@ -282,7 +282,7 @@ class Parser:
                 ret = self._parse_string_expression()
                 return ret, "string"
             except Parser.ParserError:
-                raise Parser.Expected("arithmetic or boolean expression", old_tok.line, old_tok.index)
+                raise Parser.Expected("arithmetic or string expression", old_tok.line, old_tok.index)
 
     def _parse_comparison(self) -> Node:
         comp_term1, kind1 = self._parse_comp_term()
