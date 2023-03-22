@@ -55,6 +55,7 @@ class Parser:
 
     def __init__(self, tokens: List[Lexer.Token], ops_tbl, idents_tbl, keywords_tbl, consts_tbl):
         self._tokens = tokens
+        self._tokens = tokens
         self._current_token_index = 0
         self._ops_tbl = ops_tbl
         self._idents_tbl = idents_tbl
@@ -402,22 +403,26 @@ class Parser:
         return print_node
 
     def _parse_var_declaration(self) -> Node:
+
         tok = self._curr_tok()
         self._match_keyword(tok, ("int", "double", "string", "bool"))
         type_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
         self._go_to_next_tok()
 
-        tok = self._curr_tok()
-        self._match_identifier(tok)
-        ident_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
-        self._go_to_next_tok()
+        decl_node = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("declare"),
+                                line=type_node.line, index=type_node.index)
+        decl_node.children.append(type_node)
+
+        ident_node = self._parse_identifier()
+        decl_node.children.append(ident_node)
+
+        while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
+            self._go_to_next_tok()
+            decl_node.children.append(self._parse_identifier())
 
         self._match_operator(self._curr_tok(), ";")
         self._go_to_next_tok()
 
-        decl_node = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("declare"),
-                                line=type_node.line, index=type_node.index)
-        decl_node.children = [type_node, ident_node]
         return decl_node
 
     def _parse_statement(self) -> Node:
