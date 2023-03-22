@@ -85,6 +85,14 @@ class Parser:
     def _is_mulop(self, tok: Lexer.Token) -> bool:
         return tok.table is self._ops_tbl and tok.value() in ('*', '/', '%')
 
+    def _is_operator(self, tok: Lexer.Token, op) -> bool:
+        if op is tuple:
+            tok_value_matches = tok.value() in op
+        else:
+            tok_value_matches = tok.value() == op
+
+        return tok.table is self._ops_tbl and tok_value_matches
+
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
@@ -241,13 +249,24 @@ class Parser:
 
         return term1
 
-    def _parse_bool_expression(self) -> Node:
+    def _parse_bool_term(self) -> Node:
         tok = self._curr_tok()
         self._match_bool_literal(tok)
         ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
         self._go_to_next_tok()
         return ret
 
+    def _parse_bool_expression(self) -> Node:
+        term1 = self._parse_bool_term()
+
+        while not self._no_more_tokens() and self._is_operator(self._curr_tok(), '||'):
+            opval = self._curr_tok().value()
+            op = self._parse_operator(opval)
+            term2 = self._parse_bool_term()
+            op.children = [term1, term2]
+            term1 = op
+
+        return term1
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
