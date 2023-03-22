@@ -195,7 +195,7 @@ class Lexer:
             else:
                 # identifier
                 # add WORD into the symbol table
-                var = Variable(word, None)
+                var = Variable(word, None, 0, 0)
                 append_if_not_in(self._idents_table, var)
                 next_tok = Lexer.Token(self._idents_table, self._idents_table.index(var), line, index)
         elif curr_sym == '"':
