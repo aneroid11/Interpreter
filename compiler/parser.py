@@ -384,10 +384,18 @@ class Parser:
             self._match_var_was_declared(ret)
             # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
+            # it can be a bool expression. or it can be a part of a comparison.
+            old_tok_index = self._current_token_index
+
             self._go_to_next_tok()
-            ret = self._parse_bool_expression()
-            self._match_operator(self._curr_tok(), ')')
-            self._go_to_next_tok()
+
+            try:
+                ret = self._parse_bool_expression()
+                self._match_operator(self._curr_tok(), ')')
+                self._go_to_next_tok()
+            except Parser.ParserError:
+                self._current_token_index = old_tok_index
+                ret = self._parse_comparison()
         elif self._is_keyword(tok, ("true", "false")):
             # it is a bool LITERAL.
             ret = self._parse_bool_literal()
