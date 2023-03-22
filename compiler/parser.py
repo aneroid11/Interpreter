@@ -367,6 +367,13 @@ class Parser:
         comp_op.children = [comp_term1, comp_term2]
         return comp_op
 
+    def _parse_bool_literal(self) -> Node:
+        tok = self._curr_tok()
+        self._match_bool_literal(tok)
+        ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
+        self._go_to_next_tok()
+        return ret
+
     def _parse_bool_factor(self) -> Node:
         tok = self._curr_tok()
 
@@ -377,15 +384,19 @@ class Parser:
             self._match_var_was_declared(ret)
             self._match_var_type(ret, "bool")
         # it is a comparison (or a bool expression, but it is forbidden for now)
+        # but every comparison IS a BOOLEAN EXPRESSION...
         elif self._is_operator(tok, '('):
             self._go_to_next_tok()
-            ret = self._parse_comparison()
+            # ret = self._parse_comparison()
+            ret = self._parse_bool_expression()
             self._match_operator(self._curr_tok(), ')')
             self._go_to_next_tok()
+        elif self._is_keyword(tok, ("true", "false")):
+            # it is a bool LITERAL.
+            ret = self._parse_bool_literal()
         else:
-            self._match_bool_literal(tok)
-            ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
-            self._go_to_next_tok()
+            # it is a comparison
+            ret = self._parse_comparison()
 
         return ret
 
