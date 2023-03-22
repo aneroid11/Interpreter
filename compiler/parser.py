@@ -402,6 +402,22 @@ class Parser:
         print_node.children = [str_node]
         return print_node
 
+    def _parse_optional_initialization(self, type_node: Node, ident_node: Node) -> Node:
+        if not self._no_more_tokens() and self._is_operator(self._curr_tok(), '='):
+            op_node = self._parse_operator('=')
+            tp = type_node.value()
+
+            if tp in ("int", "double"):
+                right_side_node = self._parse_arithmetic_expression()
+            elif tp == "bool":
+                right_side_node = self._parse_bool_expression()
+            else:
+                right_side_node = self._parse_string_expression()
+            op_node.children = [ident_node, right_side_node]
+            return op_node
+
+        return ident_node
+
     def _parse_var_declaration(self) -> Node:
 
         tok = self._curr_tok()
@@ -414,11 +430,12 @@ class Parser:
         decl_node.children.append(type_node)
 
         ident_node = self._parse_identifier()
-        decl_node.children.append(ident_node)
+        decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
-            self._go_to_next_tok()
-            decl_node.children.append(self._parse_identifier())
+            self._go_to_next_tok()  # skip ,
+            ident_node = self._parse_identifier()
+            decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         self._match_operator(self._curr_tok(), ";")
         self._go_to_next_tok()
