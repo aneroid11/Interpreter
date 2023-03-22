@@ -75,7 +75,7 @@ class Parser:
         self._consts_tbl = consts_tbl
 
         # parser-specific nodes
-        self._parser_nodes_tbl = ["program", "declare", "complex_statement"]
+        self._parser_nodes_tbl = ["program", "declare", "compound_statement"]
 
         self._syntax_tree = None
 
@@ -505,11 +505,11 @@ class Parser:
 
         return decl_node
 
-    def _parse_complex_statement(self) -> Node:
+    def _parse_compound_statement(self) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, '{')
         self._go_to_next_tok()
-        statement = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("complex_statement"),
+        statement = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("compound_statement"),
                                 line=tok.line, index=tok.index)
 
         while not self._no_more_tokens() and not self._is_operator(self._curr_tok(), '}'):
@@ -611,6 +611,25 @@ class Parser:
         for_node.children = [init_node, condition_node, iteration_node, body_node]
         return for_node
 
+    def _parse_switch(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "switch")
+        switch_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), "(")
+        self._go_to_next_tok()
+
+        ident_node = self._parse_identifier()
+        self._match_var_was_declared(ident_node)
+
+        self._match_operator(self._curr_tok(), ")")
+        self._go_to_next_tok()
+
+        block_node = self._parse_compound_statement()
+        switch_node.children = [ident_node, block_node]
+        return switch_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -622,8 +641,10 @@ class Parser:
             ret = self._parse_while()
         elif self._is_keyword(tok, "for"):
             ret = self._parse_for()
+        elif self._is_keyword(tok, "switch"):
+            ret = self._parse_switch()
         elif self._is_operator(tok, "{"):
-            ret = self._parse_complex_statement()
+            ret = self._parse_compound_statement()
         elif self._is_identifier(tok):
             ret = self._parse_assignment()
             self._match_operator(self._curr_tok(), ';')
