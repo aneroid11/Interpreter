@@ -41,16 +41,14 @@ class Parser:
         def __init__(self, line: int, index: int):
             super().__init__("cannot compare string and number", line, index)
 
-    class Node:
-        def __init__(self, tbl=None, index_in_tbl=None, children=None, line: int = 0, index: int = 0):
+    class Node(Lexer.Token):
+        def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
                 children = []
 
-            self.table = tbl
-            self.index_in_table = index_in_tbl
-            self.line = line
-            self.index = index
             self.children = children
+
+            super().__init__(tbl, index_in_tbl, line, index)
 
         def __str__(self):
             return str(self.table[self.index_in_table])
