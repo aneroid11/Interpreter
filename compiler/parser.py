@@ -155,6 +155,10 @@ class Parser:
         if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
             raise Parser.Expected("boolean literal", tok.line, tok.index)
 
+    def _match_number_literal(self, tok: Lexer.Token):
+        if tok.table is not self._consts_tbl or tok.value().type not in (Constant.INT, Constant.DOUBLE):
+            raise Parser.Expected("number", tok.line, tok.index)
+
     def _match_no_double_declaration(self, tok: Lexer.Token):
         if tok.value().type is not None:
             raise Parser.DoubleDeclaration(tok.value().name, tok.line, tok.index)
@@ -667,6 +671,32 @@ class Parser:
 
         return default_node
 
+    def _parse_case(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "case")
+        case_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        tok = self._curr_tok()
+        # literal
+        if self._switch_expression_type == "arithmetic":
+            self._match_number_literal(tok)
+        elif self._switch_expression_type == "bool":
+            self._match_bool_literal(tok)
+        elif self._switch_expression_type == "string":
+            self._match_string(tok)
+
+        const = Parser.Node(tok.table, tok.index_in_table, None, tok.line, tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), ":")
+        self._go_to_next_tok()
+
+        statement = self._parse_statement()
+
+        case_node.children = [const, statement]
+        return case_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -682,6 +712,8 @@ class Parser:
             ret = self._parse_for()
         elif self._is_keyword(tok, "switch"):
             ret = self._parse_switch()
+        elif self._is_keyword(tok, "case"):
+            ret = self._parse_case()
         elif self._is_keyword(tok, "break"):
             ret = self._parse_break()
         elif self._is_keyword(tok, "default"):
