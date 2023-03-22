@@ -86,12 +86,20 @@ class Parser:
         return tok.table is self._ops_tbl and tok.value() in ('*', '/', '%')
 
     def _is_operator(self, tok: Lexer.Token, op) -> bool:
-        if op is tuple:
-            tok_value_matches = tok.value() in op
-        else:
-            tok_value_matches = tok.value() == op
+        if tok.table is not self._ops_tbl:
+            return False
 
-        return tok.table is self._ops_tbl and tok_value_matches
+        if op is tuple:
+            return tok.value() in op
+        return tok.value() == op
+
+    def _is_keyword(self, tok: Lexer.Token, keyword: [str, tuple]) -> bool:
+        if tok.table is not self._keywords_tbl:
+            return False
+
+        if keyword is tuple:
+            return tok.value() in keyword
+        return tok.value() == keyword
 
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
@@ -127,6 +135,13 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
+    def _parse_identifier(self) -> Node:
+        tok = self._curr_tok()
+        self._match_identifier(tok)
+        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+        return ret
+
     def _parse_atoifb(self):
         tok = self._curr_tok()
         if tok.table is not self._keywords_tbl or tok.value() not in ("atoi", "atof", "atob"):
@@ -157,9 +172,7 @@ class Parser:
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
         else:
-            self._match_identifier(tok)
-            ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
-            self._go_to_next_tok()
+            ret = self._parse_identifier()
 
         return ret
 
@@ -223,9 +236,10 @@ class Parser:
         tok = self._curr_tok()
 
         if tok.table is self._idents_tbl:
-            ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
-            self._go_to_next_tok()
-        elif tok.table is self._keywords_tbl and tok.value() == "to_string":
+            # ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
+            # self._go_to_next_tok()
+            ret = self._parse_identifier()
+        elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
         else:
             self._match_string(tok)
@@ -251,9 +265,16 @@ class Parser:
 
     def _parse_bool_factor(self) -> Node:
         tok = self._curr_tok()
-        self._match_bool_literal(tok)
-        ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
-        self._go_to_next_tok()
+
+        if self._is_keyword(tok, "atob"):
+            ret = self._parse_atoifb()
+        elif tok.table is self._idents_tbl:
+            ret = self._parse_identifier()
+        else:
+            self._match_bool_literal(tok)
+            ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
+
         return ret
 
     def _parse_not_bool_factor(self) -> Node:
