@@ -508,6 +508,10 @@ class Parser:
         self._match_no_double_declaration(ident_node)
         ident_node.table[ident_node.index_in_table].type = type_node.value()
 
+        curr_block = self._scope_stack[len(self._scope_stack) - 1]
+        ident_node.table[ident_node.index_in_table].nest_level = curr_block[0]
+        ident_node.table[ident_node.index_in_table].block_on_level = curr_block[1]
+
         decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
