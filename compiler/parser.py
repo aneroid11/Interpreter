@@ -75,7 +75,7 @@ class Parser:
         self._consts_tbl = consts_tbl
 
         # parser-specific nodes
-        self._parser_nodes_tbl = ["program", "declare"]
+        self._parser_nodes_tbl = ["program", "declare", "complex_statement"]
 
         self._syntax_tree = None
 
@@ -485,11 +485,28 @@ class Parser:
 
         return decl_node
 
+    def _parse_complex_statement(self) -> Node:
+        tok = self._curr_tok()
+        self._match_operator(tok, '{')
+        self._go_to_next_tok()
+        print(self._curr_tok().value())
+        statement = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("complex_statement"),
+                                line=tok.line, index=tok.index)
+
+        while not self._no_more_tokens() and not self._is_operator(self._curr_tok(), '}'):
+            statement.children.append(self._parse_statement())
+
+        self._match_operator(self._curr_tok(), '}')
+        self._go_to_next_tok()
+        return statement
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
         if self._is_keyword(tok, "print"):
             ret = self._parse_print()
+        elif self._is_operator(tok, "{"):
+            ret = self._parse_complex_statement()
         else:
             ret = self._parse_var_declaration()
 
