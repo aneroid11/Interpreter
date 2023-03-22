@@ -376,8 +376,8 @@ class Parser:
             ret = self._parse_identifier()
             self._match_var_was_declared(ret)
             self._match_var_type(ret, "bool")
+        # it is a comparison (or a bool expression, but it is forbidden for now)
         elif self._is_operator(tok, '('):
-            # it is a comparison (or a bool expression, but it is forbidden for now)
             self._go_to_next_tok()
             ret = self._parse_comparison()
             self._match_operator(self._curr_tok(), ')')
@@ -547,6 +547,24 @@ class Parser:
 
         return if_node
 
+    def _parse_while(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "while")
+        while_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), "(")
+        self._go_to_next_tok()
+
+        condition_node = self._parse_bool_expression()
+        self._match_operator(self._curr_tok(), ")")
+        self._go_to_next_tok()
+
+        statement = self._parse_statement()
+        while_node.children = [condition_node, statement]
+
+        return while_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -554,6 +572,8 @@ class Parser:
             ret = self._parse_print()
         elif self._is_keyword(tok, "if"):
             ret = self._parse_if()
+        elif self._is_keyword(tok, "while"):
+            ret = self._parse_while()
         elif self._is_operator(tok, "{"):
             ret = self._parse_complex_statement()
         elif self._is_identifier(tok):
