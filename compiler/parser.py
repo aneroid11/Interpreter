@@ -493,7 +493,6 @@ class Parser:
         tok = self._curr_tok()
         self._match_operator(tok, '{')
         self._go_to_next_tok()
-        print(self._curr_tok().value())
         statement = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("complex_statement"),
                                 line=tok.line, index=tok.index)
 
@@ -525,11 +524,36 @@ class Parser:
 
         return op_node
 
+    def _parse_if(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "if")
+        if_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), "(")
+        self._go_to_next_tok()
+
+        condition_node = self._parse_bool_expression()
+        self._match_operator(self._curr_tok(), ")")
+        self._go_to_next_tok()
+
+        statement_if = self._parse_statement()
+        if_node.children = [condition_node, statement_if]
+
+        if not self._no_more_tokens() and self._is_keyword(self._curr_tok(), "else"):
+            self._go_to_next_tok()
+            statement_else = self._parse_statement()
+            if_node.children.append(statement_else)
+
+        return if_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
         if self._is_keyword(tok, "print"):
             ret = self._parse_print()
+        elif self._is_keyword(tok, "if"):
+            ret = self._parse_if()
         elif self._is_operator(tok, "{"):
             ret = self._parse_complex_statement()
         elif self._is_identifier(tok):
