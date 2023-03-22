@@ -63,6 +63,9 @@ class Parser:
         self._keywords_tbl = keywords_tbl
         self._consts_tbl = consts_tbl
 
+        # parser-specific nodes
+        self._parser_nodes_tbl = ["program", "declare"]
+
         self._syntax_tree = None
 
     def _go_to_next_tok(self):
@@ -381,14 +384,39 @@ class Parser:
 
         return term1
 
+    def _parse_statement(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "print")
+
+        print_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), '(')
+        self._go_to_next_tok()
+        str_node = self._parse_string_expression()
+        self._match_operator(self._curr_tok(), ')')
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), ';')
+        self._go_to_next_tok()
+
+        print_node.children = [str_node]
+        return print_node
+
+
+    def _parse_program(self) -> Node:
+        prog = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("program"))
+
+        while not self._no_more_tokens():
+            prog.children.append(self._parse_statement())
+
+        return prog
+
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
             return
 
         try:
-            # self._syntax_tree = self._parse_number()
-            # self._syntax_tree = self._parse_arithmetic_expression()
-            self._syntax_tree = self._parse_bool_expression()
+            self._syntax_tree = self._parse_program()
         except Parser.ParserError as err:
             print(f"PARSER ERROR:\n\t{err.message} ({err.line}:{err.index})")
             sys.exit(1)
