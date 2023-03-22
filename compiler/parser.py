@@ -195,6 +195,7 @@ class Parser:
             ret = self._parse_atoifb()
         else:
             ret = self._parse_identifier()
+            self._match_var_was_declared(ret)
 
         return ret
 
@@ -279,9 +280,8 @@ class Parser:
         tok = self._curr_tok()
 
         if tok.table is self._idents_tbl:
-            # ret = Parser.Node(self._idents_tbl, tok.index_in_table, None, tok.line, tok.index)
-            # self._go_to_next_tok()
             ret = self._parse_identifier()
+            self._match_var_was_declared(ret)
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
         else:
@@ -342,11 +342,7 @@ class Parser:
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl:
             ret = self._parse_identifier()
-        # elif self._is_operator(tok, "("):
-        #     self._go_to_next_tok()
-        #     ret = self._parse_bool_expression()
-        #     self._match_operator(self._curr_tok(), ')')
-        #     self._go_to_next_tok()
+            self._match_var_was_declared(ret)
         elif self._is_operator(tok, '('):
             # it is a comparison (or a bool expression, but it is forbidden for now)
             self._go_to_next_tok()
