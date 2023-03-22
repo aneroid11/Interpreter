@@ -220,6 +220,26 @@ class Parser:
 
         return term1
 
+    def _parse_bool_arithm_or_string_expr(self) -> Node:
+        old_tok = self._curr_tok()
+        old_token_index = self._current_token_index
+
+        try:
+            ret = self._parse_arithmetic_expression()
+            return ret
+        except Parser.ParserError:
+            self._current_token_index = old_token_index
+            try:
+                ret = self._parse_string_expression()
+                return ret
+            except Parser.ParserError:
+                self._current_token_index = old_token_index
+                try:
+                    ret = self._parse_bool_expression()
+                    return ret
+                except Parser.ParserError:
+                    raise Parser.Expected("boolean, arithmetic or string expression", old_tok.line, old_tok.index)
+
     def _parse_to_string(self) -> Node:
         tok = self._curr_tok()
         self._match_keyword(tok, "to_string")
@@ -231,7 +251,8 @@ class Parser:
 
         # bool_expr, arithm_expr or string_expr
         # for now, only arithm_expr
-        expr = self._parse_arithmetic_expression()
+        # expr = self._parse_arithmetic_expression()
+        expr = self._parse_bool_arithm_or_string_expr()
         self._match_operator(self._curr_tok(), ')')
         self._go_to_next_tok()
 
