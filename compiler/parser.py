@@ -53,6 +53,10 @@ class Parser:
         def __init__(self, tp: str, expected_type: str, line: int, index: int):
             super().__init__(f"{tp} variable cannot be used in this expression ({expected_type} expected)", line, index)
 
+    class ForbiddenStatement(ParserError):
+        def __init__(self, stmt: str, line: int, index: int):
+            super().__init__(f"{stmt} cannot be used in this block", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -166,6 +170,11 @@ class Parser:
         else:
             if tok.value().type != tp:
                 raise Parser.InvalidVarType(tok.value().type, tp, tok.line, tok.index)
+
+    def _check_for_forbidden_statements(self, tok: Lexer.Token):
+        if self._switch_expression_type is None:
+            if self._is_keyword(tok, ("break", "case", "default")):
+                raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
@@ -660,6 +669,8 @@ class Parser:
 
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
+
+        self._check_for_forbidden_statements(tok)
 
         if self._is_keyword(tok, "print"):
             ret = self._parse_print()
