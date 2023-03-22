@@ -119,6 +119,9 @@ class Parser:
             return tok.value() in keyword
         return tok.value() == keyword
 
+    def _is_identifier(self, tok: Lexer.Token) -> bool:
+        return tok.table is self._idents_tbl
+
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
@@ -135,7 +138,8 @@ class Parser:
             raise Parser.Expected(str(op), tok.line, tok.index)
 
     def _match_identifier(self, tok: Lexer.Token):
-        if tok.table is not self._idents_tbl:
+        # if tok.table is not self._idents_tbl:
+        if not self._is_identifier(tok):
             raise Parser.Expected("identifier", tok.line, tok.index)
 
     def _match_keyword(self, tok: Lexer.Token, keyword: [str, tuple]):
@@ -500,6 +504,27 @@ class Parser:
         self._go_to_next_tok()
         return statement
 
+    def _parse_assignment(self) -> Node:
+        ident_node = self._parse_identifier()
+        self._match_var_was_declared(ident_node)
+
+        op_node = self._parse_operator('=')
+        var_type = ident_node.value().type
+
+        if var_type in ("int", "double"):
+            right_part = self._parse_arithmetic_expression()
+        elif var_type == "bool":
+            right_part = self._parse_bool_expression()
+        else:
+            right_part = self._parse_string_expression()
+
+        op_node.children = [ident_node, right_part]
+
+        self._match_operator(self._curr_tok(), ';')
+        self._go_to_next_tok()
+
+        return op_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -507,6 +532,8 @@ class Parser:
             ret = self._parse_print()
         elif self._is_operator(tok, "{"):
             ret = self._parse_complex_statement()
+        elif self._is_identifier(tok):
+            ret = self._parse_assignment()
         else:
             ret = self._parse_var_declaration()
 
