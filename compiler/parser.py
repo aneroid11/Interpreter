@@ -2,7 +2,7 @@ import sys
 
 from constant import Constant
 from lexer import Lexer
-from typing import List
+from typing import List, Tuple
 
 def print_tree(root, depth: int = 0):
     if root is None:
@@ -36,6 +36,10 @@ class Parser:
     class Unexpected(ParserError):
         def __init__(self, what_is_unexpected: str, line: int, index: int):
             super().__init__(f"unexpected {what_is_unexpected}", line, index)
+
+    class CannotCompare(ParserError):
+        def __init__(self, line: int, index: int):
+            super().__init__("cannot compare string and number", line, index)
 
     class Node:
         def __init__(self, tbl=None, index_in_tbl=None, children=None, line: int = 0, index: int = 0):
@@ -265,16 +269,32 @@ class Parser:
 
         return term1
 
-    def _parse_comp_term(self) -> Node:
-        return self._parse_arithmetic_expression()
+    def _parse_comp_term(self) -> Tuple[Node, str]:
+        old_tok = self._curr_tok()
+        old_token_index = self._current_token_index
+
+        try:
+            ret = self._parse_arithmetic_expression()
+            return ret, "arithmetic"
+        except Parser.ParserError:
+            self._current_token_index = old_token_index
+            try:
+                ret = self._parse_string_expression()
+                return ret, "string"
+            except Parser.ParserError:
+                raise Parser.Expected("arithmetic or boolean expression", old_tok.line, old_tok.index)
 
     def _parse_comparison(self) -> Node:
-        comp_term1 = self._parse_comp_term()
+        comp_term1, kind1 = self._parse_comp_term()
         tok = self._curr_tok()
         self._match_operator(tok, ('==', '!=', '>=', '<=', '>', '<'))
         comp_op = self._parse_operator(tok.value())
 
-        comp_term2 = self._parse_comp_term()
+        comp_term2, kind2 = self._parse_comp_term()
+
+        if kind1 != kind2:
+            raise Parser.CannotCompare(comp_op.line, comp_op.index)
+
         comp_op.children = [comp_term1, comp_term2]
         return comp_op
 
