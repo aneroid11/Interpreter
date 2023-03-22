@@ -108,6 +108,10 @@ class Parser:
         if tok.table is not self._keywords_tbl or tok.value() != keyword:
             raise Parser.Expected(keyword, tok.line, tok.index)
 
+    def _match_bool_literal(self, tok: Lexer.Token):
+        if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
+            raise Parser.Expected("boolean literal", tok.line, tok.index)
+
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, op)
@@ -236,6 +240,14 @@ class Parser:
             term1 = op
 
         return term1
+
+    def _parse_bool_expression(self) -> Node:
+        tok = self._curr_tok()
+        self._match_bool_literal(tok)
+        ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
+        self._go_to_next_tok()
+        return ret
+
 
     def create_syntax_tree(self):
         if len(self._tokens) == 0:
