@@ -630,6 +630,30 @@ class Parser:
         switch_node.children = [ident_node, block_node]
         return switch_node
 
+    def _parse_break(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "break")
+        break_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), ";")
+        self._go_to_next_tok()
+        return break_node
+
+    def _parse_default(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "default")
+        default_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), ":")
+        self._go_to_next_tok()
+
+        statement_node = self._parse_statement()
+        default_node.children = [statement_node]
+
+        return default_node
+
     def _parse_statement(self) -> Node:
         tok = self._curr_tok()
 
@@ -643,6 +667,10 @@ class Parser:
             ret = self._parse_for()
         elif self._is_keyword(tok, "switch"):
             ret = self._parse_switch()
+        elif self._is_keyword(tok, "break"):
+            ret = self._parse_break()
+        elif self._is_keyword(tok, "default"):
+            ret = self._parse_default()
         elif self._is_operator(tok, "{"):
             ret = self._parse_compound_statement()
         elif self._is_identifier(tok):
