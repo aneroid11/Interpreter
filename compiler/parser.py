@@ -270,6 +270,11 @@ class Parser:
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl:
             ret = self._parse_identifier()
+        elif self._is_operator(tok, "("):
+            self._go_to_next_tok()
+            ret = self._parse_bool_expression()
+            self._match_operator(self._curr_tok(), ')')
+            self._go_to_next_tok()
         else:
             self._match_bool_literal(tok)
             ret = Parser.Node(self._keywords_tbl, tok.index_in_table, None, tok.line, tok.index)
