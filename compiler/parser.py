@@ -41,6 +41,14 @@ class Parser:
         def __init__(self, line: int, index: int):
             super().__init__("cannot compare string and number", line, index)
 
+    class DoubleDeclaration(ParserError):
+        def __init__(self, name: str, line: int, index: int):
+            super().__init__(f"double declaration of {name}", line, index)
+
+    class UsingOfNotDeclared(ParserError):
+        def __init__(self, name: str, line: int, index: int):
+            super().__init__(f"using not declared variable {name}", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -127,15 +135,20 @@ class Parser:
             raise Parser.Expected("identifier", tok.line, tok.index)
 
     def _match_keyword(self, tok: Lexer.Token, keyword: [str, tuple]):
-        # if tok.table is not self._keywords_tbl or tok.value() != keyword:
-        #     raise Parser.Expected(keyword, tok.line, tok.index)
         if not self._is_keyword(tok, keyword):
             raise Parser.Expected(str(keyword), tok.line, tok.index)
-
 
     def _match_bool_literal(self, tok: Lexer.Token):
         if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
             raise Parser.Expected("boolean literal", tok.line, tok.index)
+
+    def _match_no_double_declaration(self, tok: Lexer.Token):
+        if tok.value().type is not None:
+            raise Parser.DoubleDeclaration(tok.value().name, tok.line, tok.index)
+
+    def _match_var_was_declared(self, tok: Lexer.Token):
+        if tok.value().type is None:
+            raise Parser.UsingOfNotDeclared(tok.value().name, tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
@@ -419,7 +432,6 @@ class Parser:
         return ident_node
 
     def _parse_var_declaration(self) -> Node:
-
         tok = self._curr_tok()
         self._match_keyword(tok, ("int", "double", "string", "bool"))
         type_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
@@ -430,11 +442,17 @@ class Parser:
         decl_node.children.append(type_node)
 
         ident_node = self._parse_identifier()
+        self._match_no_double_declaration(ident_node)
+        ident_node.table[ident_node.index_in_table].type = type_node.value()
+
         decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
             self._go_to_next_tok()  # skip ,
             ident_node = self._parse_identifier()
+            self._match_no_double_declaration(ident_node)
+            ident_node.table[ident_node.index_in_table].type = type_node.value()
+
             decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         self._match_operator(self._curr_tok(), ";")
@@ -451,7 +469,6 @@ class Parser:
             ret = self._parse_var_declaration()
 
         return ret
-
 
     def _parse_program(self) -> Node:
         prog = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("program"))
