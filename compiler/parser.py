@@ -636,7 +636,6 @@ class Parser:
 
         expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
         self._switch_expression_type = expr_type
-        print("switch expression type =", self._switch_expression_type)
 
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
