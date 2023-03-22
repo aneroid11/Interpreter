@@ -50,8 +50,8 @@ class Parser:
             super().__init__(f"using not declared variable {name}", line, index)
 
     class InvalidVarType(ParserError):
-        def __init__(self, tp: str, line: int, index: int):
-            super().__init__(f"{tp} variable cannot be used in this expression", line, index)
+        def __init__(self, tp: str, expected_type: str, line: int, index: int):
+            super().__init__(f"{tp} variable cannot be used in this expression ({expected_type} expected)", line, index)
 
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
@@ -157,10 +157,10 @@ class Parser:
     def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
         if isinstance(tp, tuple):
             if tok.value().type not in tp:
-                raise Parser.InvalidVarType(tok.value().type, tok.line, tok.index)
+                raise Parser.InvalidVarType(tok.value().type, str(tp), tok.line, tok.index)
         else:
             if tok.value().type != tp:
-                raise Parser.InvalidVarType(tok.value().type, tok.line, tok.index)
+                raise Parser.InvalidVarType(tok.value().type, tp, tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
