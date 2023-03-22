@@ -620,14 +620,15 @@ class Parser:
         self._match_operator(self._curr_tok(), "(")
         self._go_to_next_tok()
 
-        ident_node = self._parse_identifier()
-        self._match_var_was_declared(ident_node)
+        expr_node = self._parse_bool_arithm_or_string_expr()
+        # ident_node = self._parse_identifier()
+        # self._match_var_was_declared(ident_node)
 
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
         block_node = self._parse_compound_statement()
-        switch_node.children = [ident_node, block_node]
+        switch_node.children = [expr_node, block_node]
         return switch_node
 
     def _parse_break(self) -> Node:
