@@ -256,13 +256,26 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
+    def _parse_not_bool_factor(self) -> Node:
+        tok = self._curr_tok()
+        leading_not = None
+        if self._is_operator(tok, '!'):
+            leading_not = self._parse_operator(tok.value())
+
+        bool_factor = self._parse_bool_factor()
+
+        if leading_not is None:
+            return bool_factor
+        leading_not.children = [bool_factor]
+        return leading_not
+
     def _parse_bool_term(self) -> Node:
-        factor1 = self._parse_bool_factor()
+        factor1 = self._parse_not_bool_factor()
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), '&&'):
             opval = self._curr_tok().value()
             op = self._parse_operator(opval)
-            factor2 = self._parse_bool_factor()
+            factor2 = self._parse_not_bool_factor()
             op.children = [factor1, factor2]
             factor1 = op
 
