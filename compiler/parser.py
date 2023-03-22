@@ -289,6 +289,18 @@ class Parser:
         op.children = [expr]
         return op
 
+    def _parse_scan(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, "scan")
+        op = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), '(')
+        self._go_to_next_tok()
+        self._match_operator(self._curr_tok(), ')')
+        self._go_to_next_tok()
+        return op
+
     def _parse_str_term(self) -> Node:
         tok = self._curr_tok()
 
@@ -298,6 +310,8 @@ class Parser:
             self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
+        elif self._is_keyword(tok, "scan"):
+            ret = self._parse_scan()
         else:
             self._match_string(tok)
             ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
