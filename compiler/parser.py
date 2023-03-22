@@ -49,6 +49,10 @@ class Parser:
         def __init__(self, name: str, line: int, index: int):
             super().__init__(f"using not declared variable {name}", line, index)
 
+    class InvalidVarType(ParserError):
+        def __init__(self, tp: str, line: int, index: int):
+            super().__init__(f"{tp} variable cannot be used in this expression", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -150,6 +154,14 @@ class Parser:
         if tok.value().type is None:
             raise Parser.UsingOfNotDeclared(tok.value().name, tok.line, tok.index)
 
+    def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
+        if isinstance(tp, tuple):
+            if tok.value().type not in tp:
+                raise Parser.InvalidVarType(tok.value().type, tok.line, tok.index)
+        else:
+            if tok.value().type != tp:
+                raise Parser.InvalidVarType(tok.value().type, tok.line, tok.index)
+
     def _parse_operator(self, op: str) -> Node:
         tok = self._curr_tok()
         self._match_operator(tok, op)
@@ -196,6 +208,7 @@ class Parser:
         else:
             ret = self._parse_identifier()
             self._match_var_was_declared(ret)
+            self._match_var_type(ret, ("int", "double"))
 
         return ret
 
@@ -282,6 +295,7 @@ class Parser:
         if tok.table is self._idents_tbl:
             ret = self._parse_identifier()
             self._match_var_was_declared(ret)
+            self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
         else:
@@ -343,6 +357,7 @@ class Parser:
         elif tok.table is self._idents_tbl:
             ret = self._parse_identifier()
             self._match_var_was_declared(ret)
+            self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
             # it is a comparison (or a bool expression, but it is forbidden for now)
             self._go_to_next_tok()
