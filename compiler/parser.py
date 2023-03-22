@@ -120,8 +120,6 @@ class Parser:
             raise Parser.Expected("string", tok.line, tok.index)
 
     def _match_operator(self, tok: Lexer.Token, op: [str, tuple]):
-        # if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
-        #     raise Parser.Expected(op_str, tok.line, tok.index)
         if not self._is_operator(tok, op):
             raise Parser.Expected(str(op), tok.line, tok.index)
 
@@ -129,9 +127,12 @@ class Parser:
         if tok.table is not self._idents_tbl:
             raise Parser.Expected("identifier", tok.line, tok.index)
 
-    def _match_keyword(self, tok: Lexer.Token, keyword: str):
-        if tok.table is not self._keywords_tbl or tok.value() != keyword:
-            raise Parser.Expected(keyword, tok.line, tok.index)
+    def _match_keyword(self, tok: Lexer.Token, keyword: [str, tuple]):
+        # if tok.table is not self._keywords_tbl or tok.value() != keyword:
+        #     raise Parser.Expected(keyword, tok.line, tok.index)
+        if not self._is_keyword(tok, keyword):
+            raise Parser.Expected(str(keyword), tok.line, tok.index)
+
 
     def _match_bool_literal(self, tok: Lexer.Token):
         if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
@@ -384,7 +385,7 @@ class Parser:
 
         return term1
 
-    def _parse_statement(self) -> Node:
+    def _parse_print(self) -> Node:
         tok = self._curr_tok()
         self._match_keyword(tok, "print")
 
@@ -401,6 +402,35 @@ class Parser:
 
         print_node.children = [str_node]
         return print_node
+
+    def _parse_var_declaration(self) -> Node:
+        tok = self._curr_tok()
+        self._match_keyword(tok, ("int", "double", "string", "bool"))
+        type_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        tok = self._curr_tok()
+        self._match_identifier(tok)
+        ident_node = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+
+        self._match_operator(self._curr_tok(), ";")
+        self._go_to_next_tok()
+
+        decl_node = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("declare"),
+                                line=type_node.line, index=type_node.index)
+        decl_node.children = [type_node, ident_node]
+        return decl_node
+
+    def _parse_statement(self) -> Node:
+        tok = self._curr_tok()
+
+        if self._is_keyword(tok, "print"):
+            ret = self._parse_print()
+        else:
+            ret = self._parse_var_declaration()
+
+        return ret
 
 
     def _parse_program(self) -> Node:
