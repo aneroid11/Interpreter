@@ -89,7 +89,7 @@ class Parser:
         if tok.table is not self._ops_tbl:
             return False
 
-        if op is tuple:
+        if isinstance(op, tuple):
             return tok.value() in op
         return tok.value() == op
 
@@ -97,7 +97,7 @@ class Parser:
         if tok.table is not self._keywords_tbl:
             return False
 
-        if keyword is tuple:
+        if isinstance(keyword, tuple):
             return tok.value() in keyword
         return tok.value() == keyword
 
@@ -112,9 +112,11 @@ class Parser:
         if tok.table is not self._consts_tbl or tok.value().type != Constant.STRING:
             raise Parser.Expected("string", tok.line, tok.index)
 
-    def _match_operator(self, tok: Lexer.Token, op_str: str):
-        if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
-            raise Parser.Expected(op_str, tok.line, tok.index)
+    def _match_operator(self, tok: Lexer.Token, op: [str, tuple]):
+        # if tok.table is not self._ops_tbl or tok.table[tok.index_in_table] != op_str:
+        #     raise Parser.Expected(op_str, tok.line, tok.index)
+        if not self._is_operator(tok, op):
+            raise Parser.Expected(str(op), tok.line, tok.index)
 
     def _match_identifier(self, tok: Lexer.Token):
         if tok.table is not self._idents_tbl:
@@ -263,6 +265,19 @@ class Parser:
 
         return term1
 
+    def _parse_comp_term(self) -> Node:
+        return self._parse_arithmetic_expression()
+
+    def _parse_comparison(self) -> Node:
+        comp_term1 = self._parse_comp_term()
+        tok = self._curr_tok()
+        self._match_operator(tok, ('==', '!=', '>=', '<=', '>', '<'))
+        comp_op = self._parse_operator(tok.value())
+
+        comp_term2 = self._parse_comp_term()
+        comp_op.children = [comp_term1, comp_term2]
+        return comp_op
+
     def _parse_bool_factor(self) -> Node:
         tok = self._curr_tok()
 
@@ -270,9 +285,15 @@ class Parser:
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl:
             ret = self._parse_identifier()
-        elif self._is_operator(tok, "("):
+        # elif self._is_operator(tok, "("):
+        #     self._go_to_next_tok()
+        #     ret = self._parse_bool_expression()
+        #     self._match_operator(self._curr_tok(), ')')
+        #     self._go_to_next_tok()
+        elif self._is_operator(tok, '('):
+            # it is a comparison (or a bool expression, but it is forbidden for now)
             self._go_to_next_tok()
-            ret = self._parse_bool_expression()
+            ret = self._parse_comparison()
             self._match_operator(self._curr_tok(), ')')
             self._go_to_next_tok()
         else:
