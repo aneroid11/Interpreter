@@ -9,5 +9,6 @@ class Variable:
         return f"{self.name} ({self.type} in [{self.nest_level}, {self.block_on_level}] block)"
 
     def __eq__(self, other):
-        return self.name == other.name
+        return self.name == other.name and \
+            (self.nest_level == other.nest_level and self.block_on_level == other.block_on_level)
         # return self.value == other.value and self.type == other.type
