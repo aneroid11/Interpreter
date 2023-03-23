@@ -570,15 +570,15 @@ class Parser:
 
         self._scope_stack.append((self._current_level, block_num))
 
-        print("after entering block: ")
-        print("scope stack:", self._scope_stack)
+        # print("after entering block: ")
+        # print("scope stack:", self._scope_stack)
 
     def _exit_current_block(self):
         self._current_level -= 1
         self._scope_stack.pop()
 
-        print("after exiting block: ")
-        print("scope stack:", self._scope_stack)
+        # print("after exiting block: ")
+        # print("scope stack:", self._scope_stack)
 
     def _parse_compound_statement(self) -> Node:
         tok = self._curr_tok()
