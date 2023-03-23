@@ -164,10 +164,6 @@ class Parser:
         if tok.table is not self._consts_tbl or tok.value().type not in (Constant.INT, Constant.DOUBLE):
             raise Parser.Expected("number", tok.line, tok.index)
 
-    def _match_var_was_declared(self, tok: Lexer.Token):
-        if tok.value().type is None:
-            raise Parser.UsingOfNotDeclared(tok.value().name, tok.line, tok.index)
-
     def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
         if isinstance(tp, tuple):
             if tok.value().type not in tp:
@@ -216,7 +212,27 @@ class Parser:
         self._match_identifier(tok)
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
-        self._match_var_was_declared(ret)
+        if ret.value().type is None:
+            raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
+
+        # we definitely defined this variable. the question is where.
+        # vars_with_same_name = [var for var in self._idents_tbl if var.name == ret.value().name]
+
+        scope_stack_index = len(self._scope_stack) - 1
+        var_real_index = -1
+
+        while scope_stack_index >= 0:
+            curr_block = self._scope_stack[scope_stack_index]
+            searched_var = Variable(ret.value().name, ret.value().type, curr_block[0], curr_block[1])
+
+            try:
+                var_real_index = self._idents_tbl.index(searched_var)
+                break
+            except ValueError:
+                scope_stack_index -= 1
+        #
+        # we definitely found this variable.
+        ret.index_in_table = var_real_index
 
         self._go_to_next_tok()
         return ret
@@ -251,8 +267,6 @@ class Parser:
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
         else:
-            # ret = self._parse_identifier()
-            # self._match_var_was_declared(ret)
             ret = self._parse_identifier_in_using()
             self._match_var_type(ret, ("int", "double"))
 
@@ -423,8 +437,6 @@ class Parser:
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl and tok.value().type == "bool":
-            # ret = self._parse_identifier()
-            # self._match_var_was_declared(ret)
             ret = self._parse_identifier_in_using()
             # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
