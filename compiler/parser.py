@@ -1,6 +1,7 @@
 import sys
 
 from constant import Constant
+from variable import Variable
 from lexer import Lexer
 from typing import List, Tuple
 
@@ -163,10 +164,6 @@ class Parser:
         if tok.table is not self._consts_tbl or tok.value().type not in (Constant.INT, Constant.DOUBLE):
             raise Parser.Expected("number", tok.line, tok.index)
 
-    def _match_no_double_declaration(self, tok: Lexer.Token):
-        if tok.value().type is not None:
-            raise Parser.DoubleDeclaration(tok.value().name, tok.line, tok.index)
-
     def _match_var_was_declared(self, tok: Lexer.Token):
         if tok.value().type is None:
             raise Parser.UsingOfNotDeclared(tok.value().name, tok.line, tok.index)
@@ -196,9 +193,18 @@ class Parser:
         self._match_identifier(tok)
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
-        self._match_no_double_declaration(ret)
+        curr_block = self._scope_stack[len(self._scope_stack) - 1]  # 0 - level, 1 - number of block
+
+        if ret.value().type is not None:
+            for var in self._idents_tbl:
+                if ret.value().name == var.name and curr_block[0] == var.nest_level and curr_block[1] == var.block_on_level:
+                    raise Parser.DoubleDeclaration(ret.value().name, ret.line, ret.index)
+
+            # it is a new variable with the same name. add it to the table
+            self._idents_tbl.append(Variable(ret.value().name, None, 0, 0))
+            ret.index_in_table = len(self._idents_tbl) - 1
+
         ret.table[ret.index_in_table].type = type_node.value()
-        curr_block = self._scope_stack[len(self._scope_stack) - 1]
         ret.table[ret.index_in_table].nest_level = curr_block[0]
         ret.table[ret.index_in_table].block_on_level = curr_block[1]
 
@@ -580,8 +586,7 @@ class Parser:
         return statement
 
     def _parse_assignment(self) -> Node:
-        ident_node = self._parse_identifier()
-        self._match_var_was_declared(ident_node)
+        ident_node = self._parse_identifier_in_using()
 
         op_node = self._parse_operator('=')
         var_type = ident_node.value().type
