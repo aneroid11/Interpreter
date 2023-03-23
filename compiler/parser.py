@@ -191,10 +191,27 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
-    def _parse_identifier(self) -> Node:
+    def _parse_identifier_in_declaration(self, type_node: Node) -> Node:
         tok = self._curr_tok()
         self._match_identifier(tok)
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+
+        self._match_no_double_declaration(ret)
+        ret.table[ret.index_in_table].type = type_node.value()
+        curr_block = self._scope_stack[len(self._scope_stack) - 1]
+        ret.table[ret.index_in_table].nest_level = curr_block[0]
+        ret.table[ret.index_in_table].block_on_level = curr_block[1]
+
+        self._go_to_next_tok()
+        return ret
+
+    def _parse_identifier_in_using(self) -> Node:
+        tok = self._curr_tok()
+        self._match_identifier(tok)
+        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+
+        self._match_var_was_declared(ret)
+
         self._go_to_next_tok()
         return ret
 
@@ -228,8 +245,9 @@ class Parser:
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
         else:
-            ret = self._parse_identifier()
-            self._match_var_was_declared(ret)
+            # ret = self._parse_identifier()
+            # self._match_var_was_declared(ret)
+            ret = self._parse_identifier_in_using()
             self._match_var_type(ret, ("int", "double"))
 
         return ret
@@ -327,8 +345,9 @@ class Parser:
         tok = self._curr_tok()
 
         if tok.table is self._idents_tbl:
-            ret = self._parse_identifier()
-            self._match_var_was_declared(ret)
+            # ret = self._parse_identifier()
+            # self._match_var_was_declared(ret)
+            ret = self._parse_identifier_in_using()
             self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
@@ -398,8 +417,9 @@ class Parser:
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl and tok.value().type == "bool":
-            ret = self._parse_identifier()
-            self._match_var_was_declared(ret)
+            # ret = self._parse_identifier()
+            # self._match_var_was_declared(ret)
+            ret = self._parse_identifier_in_using()
             # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
             # it can be a bool expression. or it can be a part of a comparison.
@@ -504,21 +524,13 @@ class Parser:
                                 line=type_node.line, index=type_node.index)
         decl_node.children.append(type_node)
 
-        ident_node = self._parse_identifier()
-        self._match_no_double_declaration(ident_node)
-        ident_node.table[ident_node.index_in_table].type = type_node.value()
-
-        curr_block = self._scope_stack[len(self._scope_stack) - 1]
-        ident_node.table[ident_node.index_in_table].nest_level = curr_block[0]
-        ident_node.table[ident_node.index_in_table].block_on_level = curr_block[1]
+        ident_node = self._parse_identifier_in_declaration(type_node)
 
         decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
             self._go_to_next_tok()  # skip ,
-            ident_node = self._parse_identifier()
-            self._match_no_double_declaration(ident_node)
-            ident_node.table[ident_node.index_in_table].type = type_node.value()
+            ident_node = self._parse_identifier_in_declaration(type_node)
 
             decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
