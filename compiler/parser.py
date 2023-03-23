@@ -215,7 +215,7 @@ class Parser:
         if ret.value().type is None:
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
 
-        # we definitely defined this variable. the question is where.
+        #
         # vars_with_same_name = [var for var in self._idents_tbl if var.name == ret.value().name]
 
         scope_stack_index = len(self._scope_stack) - 1
@@ -231,7 +231,9 @@ class Parser:
             except ValueError:
                 scope_stack_index -= 1
         #
-        # we definitely found this variable.
+        if var_real_index < 0:
+            raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
+
         ret.index_in_table = var_real_index
 
         self._go_to_next_tok()
