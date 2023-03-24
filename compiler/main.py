@@ -1,14 +1,10 @@
-from lexer import Lexer
-from typing import List
+from compiler import Compiler
 
 
 def main():
-    lexer = Lexer("program.cmm")
-    tokens = lexer.split_program_into_tokens()
-
-    print("TOKENS\n")
-    for tok in tokens:
-        print(f"[{Lexer.TYPES_OF_TOKENS[tok.type]}, {tok.value}] {tok.line, tok.index}", end="\n")
+    c = Compiler("program.cmm")
+    c.do_lexical_analysis()
+    c.do_syntax_analysis()
 
 
 if __name__ == "__main__":
