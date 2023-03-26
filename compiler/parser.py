@@ -132,6 +132,13 @@ class Parser:
     def _is_identifier(self, tok: Lexer.Token) -> bool:
         return tok.table is self._idents_tbl
 
+    def _is_identifier_of_type(self, tok: Lexer.Token, type: [str, tuple]) -> bool:
+        if isinstance(type, tuple):
+            return self._is_identifier(tok) and tok.value().type in type
+
+        return self._is_identifier(tok) and tok.value().type == type
+
+
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
@@ -151,6 +158,10 @@ class Parser:
         # if tok.table is not self._idents_tbl:
         if not self._is_identifier(tok):
             raise Parser.Expected("identifier", tok.line, tok.index)
+
+    def _match_identifier_of_type(self, tok: Lexer.Token, type: [str, tuple]):
+        if not self._is_identifier_of_type(tok, type):
+            raise Parser.Expected(f"{type} variable", tok.line, tok.index)
 
     def _match_keyword(self, tok: Lexer.Token, keyword: [str, tuple]):
         if not self._is_keyword(tok, keyword):
@@ -207,16 +218,18 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
-    def _parse_identifier_in_using(self) -> Node:
+    def _parse_identifier_in_using(self, type = None) -> Node:
         tok = self._curr_tok()
-        self._match_identifier(tok)
+
+        if type is None:
+            self._match_identifier(tok)
+        else:
+            self._match_identifier_of_type(tok, type)
+
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
         if ret.value().type is None:
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
-
-        #
-        # vars_with_same_name = [var for var in self._idents_tbl if var.name == ret.value().name]
 
         scope_stack_index = len(self._scope_stack) - 1
         var_real_index = -1
@@ -230,7 +243,7 @@ class Parser:
                 break
             except ValueError:
                 scope_stack_index -= 1
-        #
+
         if var_real_index < 0:
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
 
@@ -269,8 +282,8 @@ class Parser:
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
         else:
-            ret = self._parse_identifier_in_using()
-            self._match_var_type(ret, ("int", "double"))
+            ret = self._parse_identifier_in_using(("int", "double"))
+            # self._match_var_type(ret, ("int", "double"))
 
         return ret
 
@@ -369,8 +382,8 @@ class Parser:
         if tok.table is self._idents_tbl:
             # ret = self._parse_identifier()
             # self._match_var_was_declared(ret)
-            ret = self._parse_identifier_in_using()
-            self._match_var_type(ret, "string")
+            ret = self._parse_identifier_in_using("string")
+            # self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
         elif self._is_keyword(tok, "scan"):
@@ -439,7 +452,7 @@ class Parser:
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl and tok.value().type == "bool":
-            ret = self._parse_identifier_in_using()
+            ret = self._parse_identifier_in_using("bool")
             # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
             # it can be a bool expression. or it can be a part of a comparison.
@@ -570,15 +583,9 @@ class Parser:
 
         self._scope_stack.append((self._current_level, block_num))
 
-        # print("after entering block: ")
-        # print("scope stack:", self._scope_stack)
-
     def _exit_current_block(self):
         self._current_level -= 1
         self._scope_stack.pop()
-
-        # print("after exiting block: ")
-        # print("scope stack:", self._scope_stack)
 
     def _parse_compound_statement(self) -> Node:
         tok = self._curr_tok()
