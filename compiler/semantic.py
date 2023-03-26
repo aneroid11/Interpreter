@@ -45,6 +45,9 @@ class SemanticAnalyzer:
         if root.table is self._identifiers and root.value().type == "double":
             raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
 
+        for child in root.children:
+            self._check_int_expression(child)
+
     def _traverse_tree(self, root: Parser.Node):
         if root is None:
             return
