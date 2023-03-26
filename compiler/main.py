@@ -2,6 +2,8 @@ from compiler import Compiler
 
 
 def main():
+    # print(0 == 0.0)
+
     c = Compiler("program.cmm")
     c.do_lexical_analysis()
     c.do_syntax_analysis()
