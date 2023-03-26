@@ -30,6 +30,20 @@ class Parser:
             self.index = index
             super().__init__(message)
 
+        def __str__(self) -> str:
+            return f"{self.message} ({self.line}:{self.index})"
+
+    class CompoundParserError(ParserError):
+        def __init__(self, main_msg: str, line: int, index: int, messages: tuple, errors: tuple):
+            final_msg = main_msg + f" ({line}:{index})\n"
+            for i in range(len(messages)):
+                final_msg += f"{messages[i]}: {errors[i]}\n"
+
+            super().__init__(final_msg, line, index)
+
+        def __str__(self) -> str:
+            return self.message
+
     class Expected(ParserError):
         def __init__(self, expected: str, line: int, index: int):
             super().__init__(f"{expected} expected", line, index)
@@ -413,13 +427,18 @@ class Parser:
         try:
             ret = self._parse_arithmetic_expression()
             return ret, "arithmetic"
-        except Parser.ParserError:
+        except Parser.ParserError as err1:
             self._current_token_index = old_token_index
             try:
                 ret = self._parse_string_expression()
                 return ret, "string"
-            except Parser.ParserError:
-                raise Parser.Expected("valid arithmetic or string expression", old_tok.line, old_tok.index)
+            except Parser.ParserError as err2:
+                raise Parser.CompoundParserError(
+                    "error while parsing comparison part", old_tok.line, old_tok.index,
+                    ("invalid arithmetic expression", "invalid string expression"),
+                    (err1, err2)
+                )
+                # raise Parser.Expected("valid arithmetic or string expression", old_tok.line, old_tok.index)
 
     def _parse_comparison(self) -> Node:
         comp_term1, kind1 = self._parse_comp_term()
@@ -812,5 +831,5 @@ class Parser:
         try:
             self._syntax_tree = self._parse_program()
         except Parser.ParserError as err:
-            print(f"PARSER ERROR:\n\t{err.message} ({err.line}:{err.index})")
+            print(f"PARSER ERROR:\n{err}")
             sys.exit(1)
