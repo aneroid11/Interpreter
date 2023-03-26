@@ -1,5 +1,6 @@
 from lexer import Lexer
 from parser import Parser
+from semantic import SemanticAnalyzer
 
 
 def print_table(table):
@@ -19,6 +20,8 @@ class Compiler:
         self._constants_table = []
 
         self._tokens_list = []
+
+        self._parser = None
 
     def _print_lex_statistics(self):
         print("KEYWORDS")
@@ -68,3 +71,11 @@ class Compiler:
                         self._constants_table)
         parser.create_syntax_tree()
         self._print_syntax_statistics(parser)
+        self._parser = parser
+
+    def do_semantic_analysis(self):
+        analyzer = SemanticAnalyzer(
+            self._parser.get_parser_nodes(), self._operators_table, self._identifiers_table, self._keywords_table,
+            self._constants_table, self._parser.get_syntax_tree()
+        )
+        analyzer.check_for_semantic_errors()

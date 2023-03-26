@@ -103,6 +103,9 @@ class Parser:
         self._blocks_on_levels = [1]
         self._scope_stack = [(0, 1)]
 
+    def get_parser_nodes(self) -> list:
+        return self._parser_nodes_tbl
+
     def _go_to_next_tok(self):
         self._current_token_index += 1
 
@@ -839,3 +842,6 @@ class Parser:
         except Parser.ParserError as err:
             print(f"PARSER ERROR:\n{err}")
             sys.exit(1)
+
+    def get_syntax_tree(self):
+        return self._syntax_tree
