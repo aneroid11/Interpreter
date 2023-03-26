@@ -25,7 +25,7 @@ class SemanticAnalyzer:
 
     class InvalidExpressionInSwitch(SemanticError):
         def __init__(self, line: int, index: int):
-            super().__init__("only int and string expression are allowed in switch", line, index)
+            super().__init__("only int and string expressions are allowed in switch", line, index)
 
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
@@ -89,12 +89,8 @@ class SemanticAnalyzer:
             self._traverse_tree(child)
 
     def check_for_semantic_errors(self):
-        print("\nSEMANTIC ANALYSIS")
-
         try:
             self._traverse_tree(self._syntax_tree)
         except SemanticAnalyzer.SemanticError as err:
             print(f"SEMANTIC ERROR:\n{err}")
             sys.exit(1)
-
-        print("No semantic errors found")
