@@ -138,7 +138,6 @@ class Parser:
 
         return self._is_identifier(tok) and tok.value().type == type
 
-
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
@@ -170,10 +169,6 @@ class Parser:
     def _match_bool_literal(self, tok: Lexer.Token):
         if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
             raise Parser.Expected("boolean literal", tok.line, tok.index)
-
-    def _match_number_literal(self, tok: Lexer.Token):
-        if tok.table is not self._consts_tbl or tok.value().type not in (Constant.INT, Constant.DOUBLE):
-            raise Parser.Expected("number", tok.line, tok.index)
 
     def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
         if isinstance(tp, tuple):
@@ -271,19 +266,20 @@ class Parser:
     def _parse_factor(self) -> Node:
         tok = self._curr_tok()
 
-        if tok.table is self._ops_tbl and tok.value() == '(':
+        if tok.table is self._idents_tbl:
+            ret = self._parse_identifier_in_using(("int", "double"))
+        elif tok.table is self._ops_tbl and tok.value() == '(':
             self._go_to_next_tok()
             ret = self._parse_arithmetic_expression()
             self._match_operator(self._curr_tok(), ')')
             self._go_to_next_tok()
-        elif tok.table is self._consts_tbl and tok.value().type in (Constant.DOUBLE, Constant.INT):
-            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
-            self._go_to_next_tok()
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
+        # elif tok.table is self._consts_tbl and tok.value().type in (Constant.DOUBLE, Constant.INT):
         else:
-            ret = self._parse_identifier_in_using(("int", "double"))
-            # self._match_var_type(ret, ("int", "double"))
+            self._match_number(tok)
+            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
 
         return ret
 
@@ -751,7 +747,8 @@ class Parser:
         tok = self._curr_tok()
         # literal
         if self._switch_expression_type == "arithmetic":
-            self._match_number_literal(tok)
+            # self._match_number_literal(tok)
+            self._match_number(tok)
         elif self._switch_expression_type == "bool":
             self._match_bool_literal(tok)
         elif self._switch_expression_type == "string":
