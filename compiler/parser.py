@@ -229,14 +229,11 @@ class Parser:
 
     def _parse_identifier_in_using(self, type = None) -> Node:
         tok = self._curr_tok()
-
         self._match_identifier(tok)
 
-        # if type is None or (tok.table is self._idents_tbl and tok.value().type is None):
-        #     self._match_identifier(tok)
-        # else:
         if type is not None and tok.value().type is not None:
-            self._match_identifier_of_type(tok, type)
+            # self._match_identifier_of_type(tok, type)
+            self._match_var_type(tok, type)
 
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
