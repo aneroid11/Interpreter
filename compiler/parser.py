@@ -98,6 +98,7 @@ class Parser:
 
         self._syntax_tree = None
         self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
+        self._inside_of_loop = False
 
         self._current_level = 0
         self._blocks_on_levels = [1]
@@ -197,7 +198,9 @@ class Parser:
 
     def _check_for_forbidden_statements(self, tok: Lexer.Token):
         if self._switch_expression_type is None:
-            if self._is_keyword(tok, ("break", "case", "default")):
+            if self._is_keyword(tok, ("case", "default")):
+                raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
+            if self._is_keyword(tok, "break") and not self._inside_of_loop:
                 raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
@@ -688,7 +691,10 @@ class Parser:
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
+        self._inside_of_loop = True
         statement = self._parse_statement()
+        self._inside_of_loop = False
+
         while_node.children = [condition_node, statement]
 
         return while_node
@@ -721,7 +727,9 @@ class Parser:
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
+        self._inside_of_loop = True
         body_node = self._parse_statement()
+        self._inside_of_loop = False
 
         for_node.children = [init_node, condition_node, iteration_node, body_node]
         return for_node
