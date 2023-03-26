@@ -62,6 +62,7 @@ class SemanticAnalyzer:
             self._check_int_expression(root.children[0])
             self._check_int_expression(root.children[1])
             return
+#         elif root.table is self._keywords and root.value() == "switch":
 
         for child in root.children:
             self._traverse_tree(child)

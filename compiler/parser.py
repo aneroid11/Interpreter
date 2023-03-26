@@ -430,6 +430,12 @@ class Parser:
         return term1
 
     def _parse_comp_term(self) -> Tuple[Node, str]:
+        return self._parse_arithmetic_or_string_expression("error while parsing comparison part")
+
+    def _parse_switch_expression(self) -> Tuple[Node, str]:
+        return self._parse_arithmetic_or_string_expression("error while parsing switch expression")
+
+    def _parse_arithmetic_or_string_expression(self, possible_err_msg: str) -> Tuple[Node, str]:
         old_tok = self._curr_tok()
         old_token_index = self._current_token_index
 
@@ -443,11 +449,10 @@ class Parser:
                 return ret, "string"
             except Parser.ParserError as err2:
                 raise Parser.CompoundParserError(
-                    "error while parsing comparison part", old_tok.line, old_tok.index,
+                    possible_err_msg, old_tok.line, old_tok.index,
                     ("invalid arithmetic expression", "invalid string expression"),
                     (err1, err2)
                 )
-                # raise Parser.Expected("valid arithmetic or string expression", old_tok.line, old_tok.index)
 
     def _parse_comparison(self) -> Node:
         comp_term1, kind1 = self._parse_comp_term()
@@ -730,7 +735,8 @@ class Parser:
         self._match_operator(self._curr_tok(), "(")
         self._go_to_next_tok()
 
-        expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
+        # expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
+        expr_node, expr_type = self._parse_switch_expression()
         self._switch_expression_type = expr_type
 
         self._match_operator(self._curr_tok(), ")")
@@ -775,7 +781,6 @@ class Parser:
         tok = self._curr_tok()
         # literal
         if self._switch_expression_type == "arithmetic":
-            # self._match_number_literal(tok)
             self._match_number(tok)
         elif self._switch_expression_type == "bool":
             self._match_bool_literal(tok)
