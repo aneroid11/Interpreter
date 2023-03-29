@@ -30,6 +30,20 @@ class Parser:
             self.index = index
             super().__init__(message)
 
+        def __str__(self) -> str:
+            return f"{self.message} ({self.line}:{self.index})"
+
+    class CompoundParserError(ParserError):
+        def __init__(self, main_msg: str, line: int, index: int, messages: tuple, errors: tuple):
+            final_msg = main_msg + f" ({line}:{index})\n"
+            for i in range(len(messages)):
+                final_msg += f"{messages[i]}: {errors[i]}\n"
+
+            super().__init__(final_msg, line, index)
+
+        def __str__(self) -> str:
+            return self.message
+
     class Expected(ParserError):
         def __init__(self, expected: str, line: int, index: int):
             super().__init__(f"{expected} expected", line, index)
@@ -84,10 +98,14 @@ class Parser:
 
         self._syntax_tree = None
         self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
+        self._inside_of_loop = False
 
         self._current_level = 0
         self._blocks_on_levels = [1]
         self._scope_stack = [(0, 1)]
+
+    def get_parser_nodes(self) -> list:
+        return self._parser_nodes_tbl
 
     def _go_to_next_tok(self):
         self._current_token_index += 1
@@ -132,6 +150,12 @@ class Parser:
     def _is_identifier(self, tok: Lexer.Token) -> bool:
         return tok.table is self._idents_tbl
 
+    def _is_identifier_of_type(self, tok: Lexer.Token, type: [str, tuple]) -> bool:
+        if isinstance(type, tuple):
+            return self._is_identifier(tok) and tok.value().type in type
+
+        return self._is_identifier(tok) and tok.value().type == type
+
     def _match_number(self, tok: Lexer.Token):
         """Check that this token is a number."""
         # if tok.table is not self._consts_tbl or not is_number(tok.table[tok.index_in_table]):
@@ -152,6 +176,10 @@ class Parser:
         if not self._is_identifier(tok):
             raise Parser.Expected("identifier", tok.line, tok.index)
 
+    def _match_identifier_of_type(self, tok: Lexer.Token, type: [str, tuple]):
+        if not self._is_identifier_of_type(tok, type):
+            raise Parser.Expected(f"{type} variable", tok.line, tok.index)
+
     def _match_keyword(self, tok: Lexer.Token, keyword: [str, tuple]):
         if not self._is_keyword(tok, keyword):
             raise Parser.Expected(str(keyword), tok.line, tok.index)
@@ -159,10 +187,6 @@ class Parser:
     def _match_bool_literal(self, tok: Lexer.Token):
         if tok.table is not self._keywords_tbl or tok.value() not in ("true", "false"):
             raise Parser.Expected("boolean literal", tok.line, tok.index)
-
-    def _match_number_literal(self, tok: Lexer.Token):
-        if tok.table is not self._consts_tbl or tok.value().type not in (Constant.INT, Constant.DOUBLE):
-            raise Parser.Expected("number", tok.line, tok.index)
 
     def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
         if isinstance(tp, tuple):
@@ -174,7 +198,9 @@ class Parser:
 
     def _check_for_forbidden_statements(self, tok: Lexer.Token):
         if self._switch_expression_type is None:
-            if self._is_keyword(tok, ("break", "case", "default")):
+            if self._is_keyword(tok, ("case", "default")):
+                raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
+            if self._is_keyword(tok, "break") and not self._inside_of_loop:
                 raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
@@ -207,16 +233,18 @@ class Parser:
         self._go_to_next_tok()
         return ret
 
-    def _parse_identifier_in_using(self) -> Node:
+    def _parse_identifier_in_using(self, type = None) -> Node:
         tok = self._curr_tok()
         self._match_identifier(tok)
+
+        if type is not None and tok.value().type is not None:
+            # self._match_identifier_of_type(tok, type)
+            self._match_var_type(tok, type)
+
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
         if ret.value().type is None:
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
-
-        #
-        # vars_with_same_name = [var for var in self._idents_tbl if var.name == ret.value().name]
 
         scope_stack_index = len(self._scope_stack) - 1
         var_real_index = -1
@@ -230,7 +258,7 @@ class Parser:
                 break
             except ValueError:
                 scope_stack_index -= 1
-        #
+
         if var_real_index < 0:
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
 
@@ -258,19 +286,20 @@ class Parser:
     def _parse_factor(self) -> Node:
         tok = self._curr_tok()
 
-        if tok.table is self._ops_tbl and tok.value() == '(':
+        if tok.table is self._idents_tbl:
+            ret = self._parse_identifier_in_using(("int", "double"))
+        elif tok.table is self._ops_tbl and tok.value() == '(':
             self._go_to_next_tok()
             ret = self._parse_arithmetic_expression()
             self._match_operator(self._curr_tok(), ')')
             self._go_to_next_tok()
-        elif tok.table is self._consts_tbl and tok.value().type in (Constant.DOUBLE, Constant.INT):
-            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
-            self._go_to_next_tok()
         elif tok.table is self._keywords_tbl and tok.value() in ("atoi", "atof"):
             ret = self._parse_atoifb()
+        # elif tok.table is self._consts_tbl and tok.value().type in (Constant.DOUBLE, Constant.INT):
         else:
-            ret = self._parse_identifier_in_using()
-            self._match_var_type(ret, ("int", "double"))
+            self._match_number(tok)
+            ret = Parser.Node(self._consts_tbl, tok.index_in_table, None, tok.line, tok.index)
+            self._go_to_next_tok()
 
         return ret
 
@@ -319,18 +348,24 @@ class Parser:
         try:
             ret = self._parse_arithmetic_expression()
             return ret, "arithmetic"
-        except Parser.ParserError:
+        except Parser.ParserError as err1:
             self._current_token_index = old_token_index
             try:
                 ret = self._parse_string_expression()
                 return ret, "string"
-            except Parser.ParserError:
+            except Parser.ParserError as err2:
                 self._current_token_index = old_token_index
                 try:
                     ret = self._parse_bool_expression()
                     return ret, "bool"
-                except Parser.ParserError:
-                    raise Parser.Expected("boolean, arithmetic or string expression", old_tok.line, old_tok.index)
+                except Parser.ParserError as err3:
+                    raise Parser.CompoundParserError(
+                        "this expression is not a valid string, arithmetic or boolean expression",
+                        old_tok.line, old_tok.index,
+                        ("invalid arithmetic expression", "invalid string expression", "invalid boolean expression"),
+                        (err1, err2, err3)
+                    )
+                    # raise Parser.Expected("valid boolean, arithmetic or string expression", old_tok.line, old_tok.index)
 
     def _parse_to_string(self) -> Node:
         tok = self._curr_tok()
@@ -369,8 +404,8 @@ class Parser:
         if tok.table is self._idents_tbl:
             # ret = self._parse_identifier()
             # self._match_var_was_declared(ret)
-            ret = self._parse_identifier_in_using()
-            self._match_var_type(ret, "string")
+            ret = self._parse_identifier_in_using("string")
+            # self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
         elif self._is_keyword(tok, "scan"):
@@ -398,19 +433,29 @@ class Parser:
         return term1
 
     def _parse_comp_term(self) -> Tuple[Node, str]:
+        return self._parse_arithmetic_or_string_expression("error while parsing comparison part")
+
+    def _parse_switch_expression(self) -> Tuple[Node, str]:
+        return self._parse_arithmetic_or_string_expression("error while parsing switch expression")
+
+    def _parse_arithmetic_or_string_expression(self, possible_err_msg: str) -> Tuple[Node, str]:
         old_tok = self._curr_tok()
         old_token_index = self._current_token_index
 
         try:
             ret = self._parse_arithmetic_expression()
             return ret, "arithmetic"
-        except Parser.ParserError:
+        except Parser.ParserError as err1:
             self._current_token_index = old_token_index
             try:
                 ret = self._parse_string_expression()
                 return ret, "string"
-            except Parser.ParserError:
-                raise Parser.Expected("arithmetic or string expression", old_tok.line, old_tok.index)
+            except Parser.ParserError as err2:
+                raise Parser.CompoundParserError(
+                    possible_err_msg, old_tok.line, old_tok.index,
+                    ("invalid arithmetic expression", "invalid string expression"),
+                    (err1, err2)
+                )
 
     def _parse_comparison(self) -> Node:
         comp_term1, kind1 = self._parse_comp_term()
@@ -439,7 +484,7 @@ class Parser:
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl and tok.value().type == "bool":
-            ret = self._parse_identifier_in_using()
+            ret = self._parse_identifier_in_using("bool")
             # self._match_var_type(ret, "bool")
         elif self._is_operator(tok, '('):
             # it can be a bool expression. or it can be a part of a comparison.
@@ -570,15 +615,9 @@ class Parser:
 
         self._scope_stack.append((self._current_level, block_num))
 
-        # print("after entering block: ")
-        # print("scope stack:", self._scope_stack)
-
     def _exit_current_block(self):
         self._current_level -= 1
         self._scope_stack.pop()
-
-        # print("after exiting block: ")
-        # print("scope stack:", self._scope_stack)
 
     def _parse_compound_statement(self) -> Node:
         tok = self._curr_tok()
@@ -652,7 +691,10 @@ class Parser:
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
+        self._inside_of_loop = True
         statement = self._parse_statement()
+        self._inside_of_loop = False
+
         while_node.children = [condition_node, statement]
 
         return while_node
@@ -685,7 +727,9 @@ class Parser:
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
+        self._inside_of_loop = True
         body_node = self._parse_statement()
+        self._inside_of_loop = False
 
         for_node.children = [init_node, condition_node, iteration_node, body_node]
         return for_node
@@ -699,7 +743,8 @@ class Parser:
         self._match_operator(self._curr_tok(), "(")
         self._go_to_next_tok()
 
-        expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
+        # expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
+        expr_node, expr_type = self._parse_switch_expression()
         self._switch_expression_type = expr_type
 
         self._match_operator(self._curr_tok(), ")")
@@ -744,7 +789,7 @@ class Parser:
         tok = self._curr_tok()
         # literal
         if self._switch_expression_type == "arithmetic":
-            self._match_number_literal(tok)
+            self._match_number(tok)
         elif self._switch_expression_type == "bool":
             self._match_bool_literal(tok)
         elif self._switch_expression_type == "string":
@@ -808,5 +853,8 @@ class Parser:
         try:
             self._syntax_tree = self._parse_program()
         except Parser.ParserError as err:
-            print(f"PARSER ERROR:\n\t{err.message} ({err.line}:{err.index})")
+            print(f"PARSER ERROR:\n{err}")
             sys.exit(1)
+
+    def get_syntax_tree(self):
+        return self._syntax_tree
