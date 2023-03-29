@@ -1,5 +1,4 @@
 from typing import List
-# from symbol import Symbol
 from constant import Constant
 from variable import Variable
 from warnings import filterwarnings
@@ -94,6 +93,11 @@ class Lexer:
         with open(file_name) as f:
             self._program_text = f.read() + " "  # + " " IS IMPORTANT!
 
+        # print("PROGRAM:")
+        # print(self._program_text)
+        # print(self._program_text[0], end="")
+        # print("END PROGRAM")
+
         self._curr_symbol_index = 0
         self._curr_line = 1
         self._curr_index_in_line = 1
@@ -109,14 +113,14 @@ class Lexer:
         return self._program_text[self._curr_symbol_index]
 
     def next_symbol(self):
+        if self.get_curr_symbol() == '\n':
+            self._curr_line += 1
+            self._curr_index_in_line = 0
+
         self._curr_symbol_index += 1
 
         if not self.program_finished():
             self._curr_index_in_line += 1
-
-            if self.get_curr_symbol() == '\n':
-                self._curr_line += 1
-                self._curr_index_in_line = 0
 
     def program_finished(self) -> bool:
         # print(self._curr_symbol_index)
