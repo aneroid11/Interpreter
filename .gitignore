@@ -4,6 +4,7 @@
 lab1
 .idea
 *.cmm
+*.cpm
 *.kate*
 __pycache__
 .~lock*
