@@ -1,4 +1,5 @@
 from lexer import Lexer
+from constant import Constant
 
 
 class WorkingWithSyntaxTree:
@@ -41,3 +42,6 @@ class WorkingWithSyntaxTree:
             return self._is_identifier(tok) and tok.value().type in type
 
         return self._is_identifier(tok) and tok.value().type == type
+
+    def _is_string_constant(self, tok: Lexer.Token):
+        return tok.table is self._consts_tbl and tok.value().type == Constant.STRING
