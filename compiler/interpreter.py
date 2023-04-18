@@ -1,19 +1,15 @@
+from working_with_syntax_tree import WorkingWithSyntaxTree
 from parser import Parser
 
 
-class Interpreter:
+class Interpreter(WorkingWithSyntaxTree):
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
-        self._parser_nodes = parser_nodes
-        self._operators = operators
-        self._identifiers = identifiers
-        self._keywords = keywords
-        self._consts = consts
-        self._syntax_tree = syntax_tree
+        super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
 
     def _run_program(self, prog_node: Parser.Node):
         for stmt_node in prog_node.children:
-            if stmt_node.table == self._keywords and stmt_node.table[stmt_node.index_in_table] == "print":
+            if self._is_keyword(stmt_node, "print"):
                 print("execute print statement")
 
     def run_program(self):
