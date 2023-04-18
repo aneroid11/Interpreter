@@ -71,7 +71,7 @@ class Compiler:
                         self._keywords_table,
                         self._constants_table)
         parser.create_syntax_tree()
-        # self._print_syntax_statistics(parser)
+        self._print_syntax_statistics(parser)
         self._parser = parser
 
     def do_semantic_analysis(self):
