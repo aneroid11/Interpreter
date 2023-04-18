@@ -1,6 +1,5 @@
 from working_with_syntax_tree import WorkingWithSyntaxTree
 from parser import Parser
-from constant import Constant
 
 
 class Interpreter(WorkingWithSyntaxTree):
@@ -8,12 +7,15 @@ class Interpreter(WorkingWithSyntaxTree):
                  consts: list, syntax_tree):
         super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
 
-    def _compute_string_constant(self, str_const_node: Parser.Node):
+    def _compute_string_constant(self, str_const_node: Parser.Node) -> str:
         str_to_print = str_const_node.value().value
         return bytes(str_to_print, "utf-8").decode("unicode_escape")
 
-    def _interpret_scan(self):
+    def _interpret_scan(self) -> str:
         return input()
+
+    def _interpret_to_string(self, to_str_node: Parser.Node) -> str:
+        return "to_string_this"
 
     def _compute_string_expression(self, expr_node: Parser.Node) -> str:
         if self._is_string_constant(expr_node):
@@ -23,6 +25,8 @@ class Interpreter(WorkingWithSyntaxTree):
                     self._compute_string_expression(expr_node.children[1]))
         elif self._is_keyword(expr_node, "scan"):
             return self._interpret_scan()
+        elif self._is_keyword(expr_node, "to_string"):
+            return self._interpret_to_string(expr_node)
 
         return "unknown string"
 
@@ -35,4 +39,5 @@ class Interpreter(WorkingWithSyntaxTree):
                 self._run_print(stmt_node)
 
     def run_program(self):
+        print("\n\n\n\n\n")
         self._run_program(self._syntax_tree)

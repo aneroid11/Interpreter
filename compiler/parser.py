@@ -354,9 +354,6 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), '(')
         self._go_to_next_tok()
 
-        # bool_expr, arithm_expr or string_expr
-        # for now, only arithm_expr
-        # expr = self._parse_arithmetic_expression()
         expr, _ = self._parse_bool_arithm_or_string_expr()
         self._match_operator(self._curr_tok(), ')')
         self._go_to_next_tok()
