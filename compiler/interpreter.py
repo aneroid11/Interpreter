@@ -61,6 +61,13 @@ class Interpreter(WorkingWithSyntaxTree):
             if self._is_keyword(stmt_node, "print"):
                 self._run_print(stmt_node)
 
+    # def _interpret_node(self, node: Parser.Node):
+    #     if node.table is self._parser_nodes_tbl and node.value() == "program":
+    #         for stmt_node in node.children:
+    #             if self._is_keyword(stmt_node, "print"):
+    #                 self._run_print(stmt_node)
+
     def run_program(self):
         print("\n\n\n\n\n")
         self._run_program(self._syntax_tree)
+        # self._interpret_node(self._syntax_tree)
