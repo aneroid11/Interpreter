@@ -36,7 +36,8 @@ class Interpreter(WorkingWithSyntaxTree):
                     self._idents_tbl[curr_var_node.index_in_table].value = None
 
     def _interpret_node(self, node: Parser.Node):
-        if node.table is self._parser_nodes_tbl and node.value() == "program":
+        if node.table is self._parser_nodes_tbl and \
+                (node.value() == "program" or node.value() == "compound_statement"):
             for stmt_node in node.children:
                 self._interpret_node(stmt_node)
         elif self._is_keyword(node, "print"):
