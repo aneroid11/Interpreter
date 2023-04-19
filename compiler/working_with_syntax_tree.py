@@ -43,5 +43,8 @@ class WorkingWithSyntaxTree:
 
         return self._is_identifier(tok) and tok.value().type == type
 
-    def _is_string_constant(self, tok: Lexer.Token):
+    def _is_constant_of_type(self, tok: Lexer.Token, tp: int) -> bool:
+        return tok.table is self._consts_tbl and tok.value().type == tp
+
+    def _is_string_constant(self, tok: Lexer.Token) -> bool:
         return tok.table is self._consts_tbl and tok.value().type == Constant.STRING

@@ -1,5 +1,6 @@
 from working_with_syntax_tree import WorkingWithSyntaxTree
 from parser import Parser
+from constant import Constant
 
 
 class Interpreter(WorkingWithSyntaxTree):
@@ -54,20 +55,28 @@ class Interpreter(WorkingWithSyntaxTree):
         return "unknown string"
 
     def _run_print(self, print_node: Parser.Node):
-        print(self._compute_string_expression(print_node.children[0]), end='')
+        print(self._interpret_node(print_node.children[0]), end='')
 
-    def _run_program(self, prog_node: Parser.Node):
-        for stmt_node in prog_node.children:
-            if self._is_keyword(stmt_node, "print"):
-                self._run_print(stmt_node)
-
-    # def _interpret_node(self, node: Parser.Node):
-    #     if node.table is self._parser_nodes_tbl and node.value() == "program":
-    #         for stmt_node in node.children:
-    #             if self._is_keyword(stmt_node, "print"):
-    #                 self._run_print(stmt_node)
+    def _interpret_node(self, node: Parser.Node):
+        if node.table is self._parser_nodes_tbl and node.value() == "program":
+            for stmt_node in node.children:
+                self._interpret_node(stmt_node)
+        elif self._is_keyword(node, "print"):
+            self._run_print(node)
+        elif self._is_string_constant(node):
+            return self._compute_string_constant(node)
+        elif self._is_constant_of_type(node, Constant.INT):
+            return int(node.value().value)
+        elif self._is_constant_of_type(node, Constant.DOUBLE):
+            return float(node.value().value)
+        elif self._is_keyword(node, ("true", "false")):
+            return node.value() == "true"
+        elif self._is_keyword(node, "to_string"):
+            return str(self._interpret_node(node.children[0]))
+        else:
+            print("UNKNOWN NODE!!!")
+            exit(1)
 
     def run_program(self):
         print("\n\n\n\n\n")
-        self._run_program(self._syntax_tree)
-        # self._interpret_node(self._syntax_tree)
+        self._interpret_node(self._syntax_tree)
