@@ -15,14 +15,20 @@ class Interpreter(WorkingWithSyntaxTree):
     def _run_print(self, print_node: Parser.Node):
         print(self._interpret_node(print_node.children[0]), end='')
 
+    def _run_assignment(self, assignment_node: Parser.Node):
+        var_name_node = assignment_node.children[0]
+        value_node = assignment_node.children[1]
+        self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
+
     def _run_declare(self, decl_node: Parser.Node):
         type_node = decl_node.children[0]
 
         for curr_var_node in decl_node.children[1:]:
             if self._is_operator(curr_var_node, '='):
-                var_name_node = curr_var_node.children[0]
-                value_node = curr_var_node.children[1]
-                self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
+                # var_name_node = curr_var_node.children[0]
+                # value_node = curr_var_node.children[1]
+                # self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
+                self._run_assignment(curr_var_node)
             else:
                 if type_node.value() == "int":
                     self._idents_tbl[curr_var_node.index_in_table].value = 0
@@ -45,6 +51,13 @@ class Interpreter(WorkingWithSyntaxTree):
         elif stmt_if_no is not None:
             self._interpret_node(stmt_if_no)
 
+    def _run_while(self, while_node: Parser.Node):
+        cond_node = while_node.children[0]
+        body_node = while_node.children[1]
+
+        while self._interpret_node(cond_node):
+            self._interpret_node(body_node)
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and \
                 (node.value() == "program" or node.value() == "compound_statement"):
@@ -54,6 +67,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_print(node)
         elif node.table is self._parser_nodes_tbl and node.value() == "declare":
             self._run_declare(node)
+        elif self._is_operator(node, '='):
+            self._run_assignment(node)
         elif self._is_string_constant(node):
             return self._compute_string_constant(node)
         elif self._is_constant_of_type(node, Constant.INT):
@@ -112,6 +127,8 @@ class Interpreter(WorkingWithSyntaxTree):
             return self._interpret_node(node.children[0]) != self._interpret_node(node.children[1])
         elif self._is_keyword(node, "if"):
             self._run_if(node)
+        elif self._is_keyword(node, "while"):
+            self._run_while(node)
         else:
             print(f"Runtime error: unknown node: {node.line}:{node.index}")
             exit(1)
