@@ -58,6 +58,20 @@ class Interpreter(WorkingWithSyntaxTree):
         while self._interpret_node(cond_node):
             self._interpret_node(body_node)
 
+    def _run_for(self, for_node: Parser.Node):
+        init_node = for_node.children[0]
+        cond_node = for_node.children[1]
+        incr_node = for_node.children[2]
+        body_node = for_node.children[3]
+
+        if init_node is not None:
+            self._interpret_node(init_node)
+
+        while cond_node is None or self._interpret_node(cond_node):
+            self._interpret_node(body_node)
+            if incr_node is not None:
+                self._interpret_node(incr_node)
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and \
                 (node.value() == "program" or node.value() == "compound_statement"):
@@ -129,6 +143,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_if(node)
         elif self._is_keyword(node, "while"):
             self._run_while(node)
+        elif self._is_keyword(node, "for"):
+            self._run_for(node)
         else:
             print(f"Runtime error: unknown node: {node.line}:{node.index}")
             exit(1)
