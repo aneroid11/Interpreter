@@ -35,6 +35,16 @@ class Interpreter(WorkingWithSyntaxTree):
                 else:
                     self._idents_tbl[curr_var_node.index_in_table].value = None
 
+    def _run_if(self, if_node: Parser.Node):
+        cond_node = if_node.children[0]
+        stmt_if_yes = if_node.children[1]
+        stmt_if_no = None if len(if_node.children) < 3 else if_node.children[2]
+
+        if self._interpret_node(cond_node):
+            self._interpret_node(stmt_if_yes)
+        elif stmt_if_no is not None:
+            self._interpret_node(stmt_if_no)
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and \
                 (node.value() == "program" or node.value() == "compound_statement"):
@@ -100,6 +110,8 @@ class Interpreter(WorkingWithSyntaxTree):
             return self._interpret_node(node.children[0]) == self._interpret_node(node.children[1])
         elif self._is_operator(node, '!='):
             return self._interpret_node(node.children[0]) != self._interpret_node(node.children[1])
+        elif self._is_keyword(node, "if"):
+            self._run_if(node)
         else:
             print(f"Runtime error: unknown node: {node.line}:{node.index}")
             exit(1)
