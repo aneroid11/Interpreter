@@ -4,6 +4,9 @@ from constant import Constant
 
 
 class Interpreter(WorkingWithSyntaxTree):
+    class Break(Exception):
+        pass
+
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
         super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
@@ -56,7 +59,10 @@ class Interpreter(WorkingWithSyntaxTree):
         body_node = while_node.children[1]
 
         while self._interpret_node(cond_node):
-            self._interpret_node(body_node)
+            try:
+                self._interpret_node(body_node)
+            except Interpreter.Break:
+                break
 
     def _run_for(self, for_node: Parser.Node):
         init_node = for_node.children[0]
@@ -68,7 +74,11 @@ class Interpreter(WorkingWithSyntaxTree):
             self._interpret_node(init_node)
 
         while cond_node is None or self._interpret_node(cond_node):
-            self._interpret_node(body_node)
+            try:
+                self._interpret_node(body_node)
+            except Interpreter.Break:
+                break
+
             if incr_node is not None:
                 self._interpret_node(incr_node)
 
@@ -145,6 +155,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_while(node)
         elif self._is_keyword(node, "for"):
             self._run_for(node)
+        elif self._is_keyword(node, "break"):
+            raise Interpreter.Break()
         else:
             print(f"Runtime error: unknown node: {node.line}:{node.index}")
             exit(1)
