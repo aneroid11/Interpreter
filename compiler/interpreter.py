@@ -72,9 +72,14 @@ class Interpreter(WorkingWithSyntaxTree):
         elif self._is_keyword(node, ("true", "false")):
             return node.value() == "true"
         elif self._is_keyword(node, "to_string"):
-            return str(self._interpret_node(node.children[0]))
+            ret = str(self._interpret_node(node.children[0]))
+            if ret == "True":
+                return "true"
+            if ret == "False":
+                return "false"
+            return ret
         else:
-            print("UNKNOWN NODE!!!")
+            print(f"Runtime error: unknown node: {node.line}:{node.index}")
             exit(1)
 
     def run_program(self):
