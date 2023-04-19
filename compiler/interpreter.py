@@ -36,6 +36,12 @@ class Interpreter(WorkingWithSyntaxTree):
             if ret == "False":
                 return "false"
             return ret
+        elif self._is_keyword(node, "atoi"):
+            return int(self._interpret_node(node.children[0]))
+        elif self._is_keyword(node, "atof"):
+            return float(self._interpret_node(node.children[0]))
+        elif self._is_keyword(node, "atob"):
+            return bool(self._interpret_node(node.children[0]))
         elif self._is_keyword(node, "scan"):
             return input()
         elif self._is_operator(node, '+'):

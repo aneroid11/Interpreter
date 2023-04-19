@@ -340,7 +340,7 @@ class Parser(WorkingWithSyntaxTree):
                     raise Parser.CompoundParserError(
                         "this expression is not a valid string, arithmetic or boolean expression",
                         old_tok.line, old_tok.index,
-                        ("invalid arithmetic expression", "invalid string expression", "invalid boolean expression"),
+                        ("invalid boolean expression", "invalid arithmetic expression", "invalid string expression"),
                         (err1, err2, err3)
                     )
                     # raise Parser.Expected("valid boolean, arithmetic or string expression", old_tok.line, old_tok.index)
