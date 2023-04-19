@@ -324,18 +324,18 @@ class Parser(WorkingWithSyntaxTree):
         old_token_index = self._current_token_index
 
         try:
-            ret = self._parse_arithmetic_expression()
-            return ret, "arithmetic"
+            ret = self._parse_bool_expression()
+            return ret, "bool"
         except Parser.ParserError as err1:
             self._current_token_index = old_token_index
             try:
-                ret = self._parse_string_expression()
-                return ret, "string"
+                ret = self._parse_arithmetic_expression()
+                return ret, "arithmetic"
             except Parser.ParserError as err2:
                 self._current_token_index = old_token_index
                 try:
-                    ret = self._parse_bool_expression()
-                    return ret, "bool"
+                    ret = self._parse_string_expression()
+                    return ret, "string"
                 except Parser.ParserError as err3:
                     raise Parser.CompoundParserError(
                         "this expression is not a valid string, arithmetic or boolean expression",
