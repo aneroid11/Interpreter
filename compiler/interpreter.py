@@ -15,12 +15,34 @@ class Interpreter(WorkingWithSyntaxTree):
     def _run_print(self, print_node: Parser.Node):
         print(self._interpret_node(print_node.children[0]), end='')
 
+    def _run_declare(self, decl_node: Parser.Node):
+        type_node = decl_node.children[0]
+
+        for curr_var_node in decl_node.children[1:]:
+            if self._is_operator(curr_var_node, '='):
+                var_name_node = curr_var_node.children[0]
+                value_node = curr_var_node.children[1]
+                self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
+            else:
+                if type_node.value() == "int":
+                    self._idents_tbl[curr_var_node.index_in_table].value = 0
+                elif type_node.value() == "double":
+                    self._idents_tbl[curr_var_node.index_in_table].value = 0.0
+                elif type_node.value() == "string":
+                    self._idents_tbl[curr_var_node.index_in_table].value = ""
+                elif type_node.value() == "bool":
+                    self._idents_tbl[curr_var_node.index_in_table].value = False
+                else:
+                    self._idents_tbl[curr_var_node.index_in_table].value = None
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and node.value() == "program":
             for stmt_node in node.children:
                 self._interpret_node(stmt_node)
         elif self._is_keyword(node, "print"):
             self._run_print(node)
+        elif node.table is self._parser_nodes_tbl and node.value() == "declare":
+            self._run_declare(node)
         elif self._is_string_constant(node):
             return self._compute_string_constant(node)
         elif self._is_constant_of_type(node, Constant.INT):
@@ -29,6 +51,8 @@ class Interpreter(WorkingWithSyntaxTree):
             return float(node.value().value)
         elif self._is_keyword(node, ("true", "false")):
             return node.value() == "true"
+        elif self._is_identifier(node):
+            return node.value().value
         elif self._is_keyword(node, "to_string"):
             ret = str(self._interpret_node(node.children[0]))
             if ret == "True":
@@ -47,7 +71,10 @@ class Interpreter(WorkingWithSyntaxTree):
         elif self._is_operator(node, '+'):
             return self._interpret_node(node.children[0]) + self._interpret_node(node.children[1])
         elif self._is_operator(node, '-'):
-            return self._interpret_node(node.children[0]) - self._interpret_node(node.children[1])
+            if len(node.children) < 2:
+                return -self._interpret_node(node.children[0])
+            else:
+                return self._interpret_node(node.children[0]) - self._interpret_node(node.children[1])
         elif self._is_operator(node, '*'):
             return self._interpret_node(node.children[0]) * self._interpret_node(node.children[1])
         elif self._is_operator(node, '/'):

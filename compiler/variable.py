@@ -4,6 +4,7 @@ class Variable:
         self.type = tp
         self.nest_level = nest_level
         self.block_on_level = block_on_level
+        self.value = None
 
     def __str__(self):
         return f"{self.name} ({self.type} in [{self.nest_level}, {self.block_on_level}] block)"
