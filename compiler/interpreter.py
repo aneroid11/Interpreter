@@ -89,15 +89,20 @@ class Interpreter(WorkingWithSyntaxTree):
         var_val = self._interpret_node(check_var_node)
         before_label = True
 
-        for curr_stmt in statement_node.children:
-            if not self._is_keyword(curr_stmt, "case"):
+        # for curr_stmt in statement_node.children:
+        #     if before_label:
+        #         if self._is_operator(curr_stmt, "case"):
 
+    def _run_compound_statement(self, node: Parser.Node):
+        for stmt_node in node.children:
+            self._interpret_node(stmt_node)
 
     def _interpret_node(self, node: Parser.Node):
-        if node.table is self._parser_nodes_tbl and \
-                (node.value() == "program" or node.value() == "compound_statement"):
+        if node.table is self._parser_nodes_tbl and node.value() == "program":
             for stmt_node in node.children:
                 self._interpret_node(stmt_node)
+        elif node.table is self._parser_nodes_tbl and node.value() == "compound_statement":
+            self._run_compound_statement(node)
         elif self._is_keyword(node, "print"):
             self._run_print(node)
         elif node.table is self._parser_nodes_tbl and node.value() == "declare":
