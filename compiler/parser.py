@@ -73,6 +73,10 @@ class Parser(WorkingWithSyntaxTree):
         def __init__(self, stmt: str, line: int, index: int):
             super().__init__(f"{stmt} cannot be used in this block", line, index)
 
+    class ArrayInitializationError(ParserError):
+        def __init__(self, line: int, index: int):
+            super().__init__(f"cannot initialize array", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -590,7 +594,10 @@ class Parser(WorkingWithSyntaxTree):
     def _parse_optional_initialization(self, type_node: Node, ident_node: Node) -> Node:
         if not self._no_more_tokens() and self._is_operator(self._curr_tok(), '='):
             op_node = self._parse_operator('=')
-            tp = type_node.value()
+            # tp = type_node.value()
+            tp = ident_node.value().type
+            if isinstance(tp, list):
+                raise Parser.ArrayInitializationError(op_node.line, op_node.index)
 
             if tp in ("int", "double"):
                 right_side_node = self._parse_arithmetic_expression()
@@ -614,13 +621,11 @@ class Parser(WorkingWithSyntaxTree):
         # decl_node.children.append(type_node)
 
         ident_node = self._parse_identifier_in_declaration(type_node)
-
         decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         while not self._no_more_tokens() and self._is_operator(self._curr_tok(), ','):
             self._go_to_next_tok()  # skip ,
             ident_node = self._parse_identifier_in_declaration(type_node)
-
             decl_node.children.append(self._parse_optional_initialization(type_node, ident_node))
 
         self._match_operator(self._curr_tok(), ";")
