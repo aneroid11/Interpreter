@@ -87,7 +87,7 @@ class Parser(WorkingWithSyntaxTree):
 
     def __init__(self, tokens: List[Lexer.Token], ops_tbl, idents_tbl, keywords_tbl, consts_tbl):
         super().__init__(
-            ["program", "declare", "compound_statement"],
+            ["program", "declare", "compound_statement", "indexation"],
             ops_tbl,
             idents_tbl,
             keywords_tbl,
@@ -258,6 +258,10 @@ class Parser(WorkingWithSyntaxTree):
 
         ret.index_in_table = var_real_index
         return ret
+
+    def _parse_identifier_in_using_or_indexation(self, type = None) -> Node:
+        ident_node = self._parse_identifier_in_using(type)
+        return ident_node
 
     def _parse_atoifb(self):
         tok = self._curr_tok()
@@ -630,8 +634,28 @@ class Parser(WorkingWithSyntaxTree):
     def _parse_assignment(self) -> Node:
         ident_node = self._parse_identifier_in_using()
 
+        # if this is an array...
+        # indexes = []
+        # indexation_node = None
+        # while self._is_operator(self._curr_tok(), '['):
+        #     self._go_to_next_tok()
+        #     indexes.append(self._parse_arithmetic_expression())
+        #     self._match_operator(self._curr_tok(), ']')
+        #     self._go_to_next_tok()
+        # if len(indexes) > 0:
+        #     indexation_node = Parser.Node(
+        #         self._parser_nodes_tbl,
+        #         self._parser_nodes_tbl.index("indexation"),
+        #                         line=ident_node.line, index=ident_node.index
+        #     )
+        #     indexation_node.children = [ident_node] + indexes
+        # ...
+
         op_node = self._parse_operator('=')
+        # var_type = ident_node.value().type if indexation_node is None else ident_node.value().type[0]
         var_type = ident_node.value().type
+
+        print(var_type)
 
         if var_type in ("int", "double"):
             right_part = self._parse_arithmetic_expression()
@@ -640,6 +664,8 @@ class Parser(WorkingWithSyntaxTree):
         else:
             right_part = self._parse_string_expression()
 
+        # if indexation_node is not None:
+        #     ident_node = indexation_node
         op_node.children = [ident_node, right_part]
 
         return op_node
