@@ -183,9 +183,28 @@ class Parser(WorkingWithSyntaxTree):
         self._go_to_next_tok()
         return ret
 
+    def _parse_int_literal(self) -> Node:
+        tok = self._curr_tok()
+        if tok.table is self._consts_tbl and tok.value().type != Constant.INT:
+            raise Parser.Expected("int literal", tok.line, tok.index)
+
+        ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
+        self._go_to_next_tok()
+        return ret
+
     def _parse_identifier_in_declaration(self, type_node: Node) -> Node:
         tok = self._curr_tok()
         self._match_identifier(tok)
+        self._go_to_next_tok()
+        arr_sizes = []
+
+        while self._is_operator(self._curr_tok(), '['):
+            self._go_to_next_tok()
+            curr_size_node = self._parse_int_literal()
+            arr_sizes.append(int(curr_size_node.value().value))
+            self._match_operator(self._curr_tok(), ']')
+            self._go_to_next_tok()
+
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
         curr_block = self._scope_stack[len(self._scope_stack) - 1]  # 0 - level, 1 - number of block
@@ -199,11 +218,13 @@ class Parser(WorkingWithSyntaxTree):
             self._idents_tbl.append(Variable(ret.value().name, None, 0, 0))
             ret.index_in_table = len(self._idents_tbl) - 1
 
-        ret.table[ret.index_in_table].type = type_node.value()
+        if len(arr_sizes) < 1:
+            ret.table[ret.index_in_table].type = type_node.value()
+        else:
+            ret.table[ret.index_in_table].type = [type_node.value()] + arr_sizes
         ret.table[ret.index_in_table].nest_level = curr_block[0]
         ret.table[ret.index_in_table].block_on_level = curr_block[1]
 
-        self._go_to_next_tok()
         return ret
 
     def _parse_identifier_in_using(self, type = None) -> Node:
