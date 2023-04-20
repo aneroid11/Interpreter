@@ -750,8 +750,8 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), ":")
         self._go_to_next_tok()
 
-        statement_node = self._parse_statement()
-        default_node.children = [statement_node]
+        # statement_node = self._parse_statement()
+        # default_node.children = [statement_node]
 
         return default_node
 
@@ -777,9 +777,9 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), ":")
         self._go_to_next_tok()
 
-        statement = self._parse_statement()
+        # statement = self._parse_statement()
 
-        case_node.children = [const, statement]
+        case_node.children = [const]
         return case_node
 
     def _parse_statement(self) -> Node:

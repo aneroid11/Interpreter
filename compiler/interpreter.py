@@ -210,10 +210,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_for(node)
         elif self._is_keyword(node, "switch"):
             self._run_switch(node)
-        elif self._is_keyword(node, "case"):
-            self._interpret_node(node.children[1])
-        elif self._is_keyword(node, "default"):
-            self._interpret_node(node.children[0])
+        elif self._is_keyword(node, ("case", "default")):
+            return
         elif self._is_keyword(node, "break"):
             raise Interpreter.Break()
         else:
