@@ -261,7 +261,33 @@ class Parser(WorkingWithSyntaxTree):
 
     def _parse_identifier_in_using_or_indexation(self, type = None) -> Node:
         ident_node = self._parse_identifier_in_using(type)
-        return ident_node
+        var_type = ident_node.value().type
+
+        if type(var_type) != list:
+            return ident_node
+
+        # this is an array
+        num_indexes = len(var_type) - 1
+        indexes = []
+        # indexation_node = None
+
+        for i in range(num_indexes):
+            self._match_operator(self._curr_tok(), '[')
+            self._go_to_next_tok()
+
+            indexes.append(self._parse_arithmetic_expression())
+
+            self._match_operator(self._curr_tok(), ']')
+            self._go_to_next_tok()
+
+        indexation_node = Parser.Node(
+            self._parser_nodes_tbl,
+            self._parser_nodes_tbl.index("indexation"),
+            line=ident_node.line,
+            index=ident_node.index
+        )
+        indexation_node.children = [ident_node] + indexes
+        return indexation_node
 
     def _parse_atoifb(self):
         tok = self._curr_tok()
