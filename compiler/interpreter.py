@@ -82,6 +82,17 @@ class Interpreter(WorkingWithSyntaxTree):
             if incr_node is not None:
                 self._interpret_node(incr_node)
 
+    def _run_switch(self, switch_node: Parser.Node):
+        check_var_node = switch_node.children[0]
+        statement_node = switch_node.children[1]
+
+        var_val = self._interpret_node(check_var_node)
+        before_label = True
+
+        for curr_stmt in statement_node.children:
+            if not self._is_keyword(curr_stmt, "case"):
+
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and \
                 (node.value() == "program" or node.value() == "compound_statement"):
@@ -155,6 +166,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_while(node)
         elif self._is_keyword(node, "for"):
             self._run_for(node)
+        elif self._is_keyword(node, "switch"):
+            self._run_switch(node)
         elif self._is_keyword(node, "break"):
             raise Interpreter.Break()
         else:
