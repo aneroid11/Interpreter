@@ -230,9 +230,9 @@ class Parser(WorkingWithSyntaxTree):
     def _parse_identifier_in_using(self, type = None) -> Node:
         tok = self._curr_tok()
         self._match_identifier(tok)
+        self._go_to_next_tok()
 
         if type is not None and tok.value().type is not None:
-            # self._match_identifier_of_type(tok, type)
             self._match_var_type(tok, type)
 
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
@@ -257,8 +257,6 @@ class Parser(WorkingWithSyntaxTree):
             raise Parser.UsingOfNotDeclared(ret.value().name, ret.line, ret.index)
 
         ret.index_in_table = var_real_index
-
-        self._go_to_next_tok()
         return ret
 
     def _parse_atoifb(self):
