@@ -263,14 +263,13 @@ class Parser(WorkingWithSyntaxTree):
         ident_node = self._parse_identifier_in_using(type)
         var_type = ident_node.value().type
 
-        if type(var_type) != list:
+        # if type(var_type) != list:
+        if not isinstance(var_type, list):
             return ident_node
 
         # this is an array
         num_indexes = len(var_type) - 1
         indexes = []
-        # indexation_node = None
-
         for i in range(num_indexes):
             self._match_operator(self._curr_tok(), '[')
             self._go_to_next_tok()
@@ -309,7 +308,8 @@ class Parser(WorkingWithSyntaxTree):
         tok = self._curr_tok()
 
         if tok.table is self._idents_tbl:
-            ret = self._parse_identifier_in_using(("int", "double"))
+            # ret = self._parse_identifier_in_using(("int", "double"))
+            ret = self._parse_identifier_in_using_or_indexation(("int", "double"))
         elif tok.table is self._ops_tbl and tok.value() == '(':
             self._go_to_next_tok()
             ret = self._parse_arithmetic_expression()
@@ -423,7 +423,8 @@ class Parser(WorkingWithSyntaxTree):
         if tok.table is self._idents_tbl:
             # ret = self._parse_identifier()
             # self._match_var_was_declared(ret)
-            ret = self._parse_identifier_in_using("string")
+            # ret = self._parse_identifier_in_using("string")
+            ret = self._parse_identifier_in_using_or_indexation("string")
             # self._match_var_type(ret, "string")
         elif self._is_keyword(tok, "to_string"):
             ret = self._parse_to_string()
@@ -503,8 +504,8 @@ class Parser(WorkingWithSyntaxTree):
         if self._is_keyword(tok, "atob"):
             ret = self._parse_atoifb()
         elif tok.table is self._idents_tbl and tok.value().type == "bool":
-            ret = self._parse_identifier_in_using("bool")
-            # self._match_var_type(ret, "bool")
+            # ret = self._parse_identifier_in_using("bool")
+            ret = self._parse_identifier_in_using_or_indexation("bool")
         elif self._is_operator(tok, '('):
             # it can be a bool expression. or it can be a part of a comparison.
             old_tok_index = self._current_token_index
@@ -658,31 +659,17 @@ class Parser(WorkingWithSyntaxTree):
         return statement
 
     def _parse_assignment(self) -> Node:
-        ident_node = self._parse_identifier_in_using()
-
-        # if this is an array...
-        # indexes = []
-        # indexation_node = None
-        # while self._is_operator(self._curr_tok(), '['):
-        #     self._go_to_next_tok()
-        #     indexes.append(self._parse_arithmetic_expression())
-        #     self._match_operator(self._curr_tok(), ']')
-        #     self._go_to_next_tok()
-        # if len(indexes) > 0:
-        #     indexation_node = Parser.Node(
-        #         self._parser_nodes_tbl,
-        #         self._parser_nodes_tbl.index("indexation"),
-        #                         line=ident_node.line, index=ident_node.index
-        #     )
-        #     indexation_node.children = [ident_node] + indexes
-        # ...
+        # ident_node = self._parse_identifier_in_using()
+        ident_node = self._parse_identifier_in_using_or_indexation()
 
         op_node = self._parse_operator('=')
         # var_type = ident_node.value().type if indexation_node is None else ident_node.value().type[0]
-        var_type = ident_node.value().type
 
-        print(var_type)
-
+        if self._is_identifier(ident_node):
+            var_type = ident_node.value().type
+        else:
+            var_type = ident_node.children[0].value().type[0]
+        
         if var_type in ("int", "double"):
             right_part = self._parse_arithmetic_expression()
         elif var_type == "bool":
