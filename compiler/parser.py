@@ -97,15 +97,6 @@ class Parser(WorkingWithSyntaxTree):
 
         self._tokens = tokens
         self._current_token_index = 0
-        # self._ops_tbl = ops_tbl
-        # self._idents_tbl = idents_tbl
-        # self._keywords_tbl = keywords_tbl
-        # self._consts_tbl = consts_tbl
-        #
-        # # parser-specific nodes
-        # self._parser_nodes_tbl = ["program", "declare", "compound_statement"]
-
-        # self._syntax_tree = None
         self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
         self._inside_of_loop = False
 
