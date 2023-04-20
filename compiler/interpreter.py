@@ -27,7 +27,7 @@ class Interpreter(WorkingWithSyntaxTree):
             self._idents_tbl[left_node.index_in_table].value = value
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
-            print(arr_to_assign)
+            # print(arr_to_assign)
 
             for index_node in left_node.children[1:-1]:
                 idx = self._interpret_node(index_node)
@@ -156,6 +156,15 @@ class Interpreter(WorkingWithSyntaxTree):
         for stmt_node in node.children:
             self._interpret_node(stmt_node)
 
+    def _run_indexation(self, node: Parser.Node):
+        val = self._idents_tbl[node.children[0].index_in_table].value
+
+        for index_node in node.children[1:]:
+            idx = self._interpret_node(index_node)
+            val = val[idx]
+
+        return val
+
     def _interpret_node(self, node: Parser.Node):
         if node.table is self._parser_nodes_tbl and node.value() == "program":
             for stmt_node in node.children:
@@ -166,7 +175,8 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_print(node)
         elif node.table is self._parser_nodes_tbl and node.value() == "declare":
             self._run_declare(node)
-        # elif self._is_parser_node(node, "indexation"):
+        elif self._is_parser_node(node, "indexation"):
+            return self._run_indexation(node)
         elif self._is_operator(node, '='):
             self._run_assignment(node)
         elif self._is_string_constant(node):
