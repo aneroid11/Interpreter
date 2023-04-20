@@ -97,8 +97,10 @@ class Parser(WorkingWithSyntaxTree):
 
         self._tokens = tokens
         self._current_token_index = 0
-        self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
-        self._inside_of_loop = False
+        # self._switch_expression_type = None  # None if we are not parsing switch, type if we are.
+        self._switch_expression_types = []
+        # self._inside_of_loop = False
+        self._num_loops = 0
 
         self._current_level = 0
         self._blocks_on_levels = [1]
@@ -166,10 +168,12 @@ class Parser(WorkingWithSyntaxTree):
                 raise Parser.InvalidVarType(tok.value().type, tp, tok.line, tok.index)
 
     def _check_for_forbidden_statements(self, tok: Lexer.Token):
-        if self._switch_expression_type is None:
+        # if self._switch_expression_type is None:
+        if len(self._switch_expression_types) < 1:
             if self._is_keyword(tok, ("case", "default")):
                 raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
-            if self._is_keyword(tok, "break") and not self._inside_of_loop:
+            # if self._is_keyword(tok, "break") and not self._inside_of_loop:
+            if self._is_keyword(tok, "break") and self._num_loops < 1:
                 raise Parser.ForbiddenStatement(tok.value(), tok.line, tok.index)
 
     def _parse_operator(self, op: str) -> Node:
@@ -657,9 +661,11 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
-        self._inside_of_loop = True
+        self._num_loops += 1
+        # self._inside_of_loop = True
         statement = self._parse_statement()
-        self._inside_of_loop = False
+        # self._inside_of_loop = False
+        self._num_loops -= 1
 
         while_node.children = [condition_node, statement]
 
@@ -693,9 +699,11 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
-        self._inside_of_loop = True
+        # self._inside_of_loop = True
+        self._num_loops += 1
         body_node = self._parse_statement()
-        self._inside_of_loop = False
+        # self._inside_of_loop = False
+        self._num_loops -= 1
 
         for_node.children = [init_node, condition_node, iteration_node, body_node]
         return for_node
@@ -711,14 +719,15 @@ class Parser(WorkingWithSyntaxTree):
 
         # expr_node, expr_type = self._parse_bool_arithm_or_string_expr()
         expr_node, expr_type = self._parse_switch_expression()
-        self._switch_expression_type = expr_type
+        self._switch_expression_types.append(expr_type)
 
         self._match_operator(self._curr_tok(), ")")
         self._go_to_next_tok()
 
         block_node = self._parse_compound_statement()
 
-        self._switch_expression_type = None
+        # self._switch_expression_type = None
+        self._switch_expression_types.pop()
         switch_node.children = [expr_node, block_node]
         return switch_node
 
@@ -753,12 +762,13 @@ class Parser(WorkingWithSyntaxTree):
         self._go_to_next_tok()
 
         tok = self._curr_tok()
+        switch_expr_type = self._switch_expression_types[len(self._switch_expression_types) - 1]
         # literal
-        if self._switch_expression_type == "arithmetic":
+        if switch_expr_type == "arithmetic":
             self._match_number(tok)
-        elif self._switch_expression_type == "bool":
+        elif switch_expr_type == "bool":
             self._match_bool_literal(tok)
-        elif self._switch_expression_type == "string":
+        elif switch_expr_type == "string":
             self._match_string(tok)
 
         const = Parser.Node(tok.table, tok.index_in_table, None, tok.line, tok.index)
