@@ -23,26 +23,41 @@ class Interpreter(WorkingWithSyntaxTree):
         value_node = assignment_node.children[1]
         self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
 
+    def _get_default_value(self, tp: str):
+        if tp == "int":
+            return 0
+        if tp == "double":
+            return 0.0
+        if tp == "string":
+            return ""
+        if tp == "bool":
+            return False
+        return None
+
+    def _create_array(self, sizes: list, default_value):
+        if len(sizes) == 0:
+            return default_value
+        return [self._create_array(sizes[1:], default_value)] * sizes[0]
+
     def _run_declare(self, decl_node: Parser.Node):
-        type_node = decl_node.children[0]
+        # type_node = decl_node.children[0]
 
         for curr_var_node in decl_node.children[1:]:
             if self._is_operator(curr_var_node, '='):
-                # var_name_node = curr_var_node.children[0]
-                # value_node = curr_var_node.children[1]
-                # self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
                 self._run_assignment(curr_var_node)
             else:
-                if type_node.value() == "int":
-                    self._idents_tbl[curr_var_node.index_in_table].value = 0
-                elif type_node.value() == "double":
-                    self._idents_tbl[curr_var_node.index_in_table].value = 0.0
-                elif type_node.value() == "string":
-                    self._idents_tbl[curr_var_node.index_in_table].value = ""
-                elif type_node.value() == "bool":
-                    self._idents_tbl[curr_var_node.index_in_table].value = False
+                var_type = curr_var_node.value().type
+                print(var_type)
+
+                if not isinstance(var_type, list):
+                    self._idents_tbl[curr_var_node.index_in_table].value = self._get_default_value(var_type)
                 else:
-                    self._idents_tbl[curr_var_node.index_in_table].value = None
+                    # this is an array
+                    default_value = self._get_default_value(var_type[0])
+                    self._idents_tbl[curr_var_node.index_in_table].value = \
+                        self._create_array(var_type[1:], default_value)
+
+                    print(self._idents_tbl[curr_var_node.index_in_table].value)
 
     def _run_if(self, if_node: Parser.Node):
         cond_node = if_node.children[0]
@@ -144,6 +159,7 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_print(node)
         elif node.table is self._parser_nodes_tbl and node.value() == "declare":
             self._run_declare(node)
+        # elif self._is_parser_node(node, "indexation"):
         elif self._is_operator(node, '='):
             self._run_assignment(node)
         elif self._is_string_constant(node):
@@ -172,7 +188,10 @@ class Interpreter(WorkingWithSyntaxTree):
         elif self._is_keyword(node, "scan"):
             return input()
         elif self._is_operator(node, '+'):
-            return self._interpret_node(node.children[0]) + self._interpret_node(node.children[1])
+            if len(node.children) < 2:
+                return self._interpret_node(node.children[0])
+            else:
+                return self._interpret_node(node.children[0]) + self._interpret_node(node.children[1])
         elif self._is_operator(node, '-'):
             if len(node.children) < 2:
                 return -self._interpret_node(node.children[0])

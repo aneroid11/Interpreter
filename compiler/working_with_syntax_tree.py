@@ -48,3 +48,6 @@ class WorkingWithSyntaxTree:
 
     def _is_string_constant(self, tok: Lexer.Token) -> bool:
         return tok.table is self._consts_tbl and tok.value().type == Constant.STRING
+
+    def _is_parser_node(self, tok: Lexer.Token, node_name: str) -> bool:
+        return tok.table is self._parser_nodes_tbl and tok.value() == node_name

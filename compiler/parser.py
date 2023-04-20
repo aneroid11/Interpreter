@@ -265,12 +265,9 @@ class Parser(WorkingWithSyntaxTree):
         return ret
 
     def _parse_identifier_in_using_or_indexation(self, type = None) -> Node:
-        # print(type)
-
         ident_node = self._parse_identifier_in_using(type)
         var_type = ident_node.value().type
 
-        # if type(var_type) != list:
         if not isinstance(var_type, list):
             return ident_node
 
@@ -614,7 +611,7 @@ class Parser(WorkingWithSyntaxTree):
 
         decl_node = Parser.Node(self._parser_nodes_tbl, self._parser_nodes_tbl.index("declare"),
                                 line=type_node.line, index=type_node.index)
-        decl_node.children.append(type_node)
+        # decl_node.children.append(type_node)
 
         ident_node = self._parse_identifier_in_declaration(type_node)
 
