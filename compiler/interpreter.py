@@ -103,16 +103,32 @@ class Interpreter(WorkingWithSyntaxTree):
         cases_and_default = []
         self._find_all_cases_and_default(statement_node, cases_and_default)
 
-        for case, parent, idx in cases_and_default:
-            print(case)
-            print(parent)
-            print(idx)
-            print()
+        if len(cases_and_default) == 0:
+            return
 
-        # try:
-        #     self._interpret_node(statement_node)
-        # except Interpreter.Break:
-        #     pass
+        default_info = None
+        needed_node_info = None
+
+        for node_info in cases_and_default:
+            if self._is_keyword(node_info[0], "default"):
+                default_info = node_info
+            else:
+                if var_val == self._interpret_node(node_info[0].children[0]):
+                    needed_node_info = node_info
+                    break
+
+        if default_info is None and needed_node_info is None:
+            return
+        if needed_node_info is None and default_info is not None:
+            needed_node_info = default_info
+
+        parent, idx = needed_node_info[1], needed_node_info[2]
+
+        for i in range(idx, len(parent.children)):
+            try:
+                self._interpret_node(parent.children[i])
+            except Interpreter.Break:
+                break
 
     def _run_compound_statement(self, node: Parser.Node):
         for stmt_node in node.children:
