@@ -32,6 +32,10 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
         def __init__(self, line: int, index: int):
             super().__init__("only one default is allowed in switch", line, index)
 
+    class CaseOrDefaultNotOnFirstLevel(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("case and default must be on the first nest level", line, index)
+
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
         super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
