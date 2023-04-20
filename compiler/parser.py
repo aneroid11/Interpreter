@@ -160,11 +160,15 @@ class Parser(WorkingWithSyntaxTree):
             raise Parser.Expected("boolean literal", tok.line, tok.index)
 
     def _match_var_type(self, tok: Lexer.Token, tp: [str, tuple]):
+        actual_type = tok.value().type[0] if isinstance(tok.value().type, list) else tok.value().type
+
         if isinstance(tp, tuple):
-            if tok.value().type not in tp:
+            # if tok.value().type not in tp:
+            if actual_type not in tp:
                 raise Parser.InvalidVarType(tok.value().type, str(tp), tok.line, tok.index)
         else:
-            if tok.value().type != tp:
+            # if tok.value().type != tp:
+            if actual_type != tp:
                 raise Parser.InvalidVarType(tok.value().type, tp, tok.line, tok.index)
 
     def _check_for_forbidden_statements(self, tok: Lexer.Token):
