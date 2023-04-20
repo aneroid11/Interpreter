@@ -82,16 +82,37 @@ class Interpreter(WorkingWithSyntaxTree):
             if incr_node is not None:
                 self._interpret_node(incr_node)
 
+    def _find_all_cases_and_default(self, node: Parser.Node, ret: list):
+        if node is None:
+            return
+
+        children_len = len(node.children)
+
+        for i in range(children_len):
+            stmt = node.children[i]
+            if self._is_keyword(stmt, ("case", "default")):
+                ret.append((stmt, node, i))
+            elif not self._is_keyword(stmt, "switch"):
+                self._find_all_cases_and_default(stmt, ret)
+
     def _run_switch(self, switch_node: Parser.Node):
         check_var_node = switch_node.children[0]
         statement_node = switch_node.children[1]
 
         var_val = self._interpret_node(check_var_node)
-        self._interpret_node(statement_node)
+        cases_and_default = []
+        self._find_all_cases_and_default(statement_node, cases_and_default)
 
-        # for curr_stmt in statement_node.children:
-        #     if before_label:
-        #         if self._is_operator(curr_stmt, "case"):
+        for case, parent, idx in cases_and_default:
+            print(case)
+            print(parent)
+            print(idx)
+            print()
+
+        # try:
+        #     self._interpret_node(statement_node)
+        # except Interpreter.Break:
+        #     pass
 
     def _run_compound_statement(self, node: Parser.Node):
         for stmt_node in node.children:
@@ -173,6 +194,10 @@ class Interpreter(WorkingWithSyntaxTree):
             self._run_for(node)
         elif self._is_keyword(node, "switch"):
             self._run_switch(node)
+        elif self._is_keyword(node, "case"):
+            self._interpret_node(node.children[1])
+        elif self._is_keyword(node, "default"):
+            self._interpret_node(node.children[0])
         elif self._is_keyword(node, "break"):
             raise Interpreter.Break()
         else:
