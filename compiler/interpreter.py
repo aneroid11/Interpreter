@@ -87,7 +87,7 @@ class Interpreter(WorkingWithSyntaxTree):
         statement_node = switch_node.children[1]
 
         var_val = self._interpret_node(check_var_node)
-        before_label = True
+        self._interpret_node(statement_node)
 
         # for curr_stmt in statement_node.children:
         #     if before_label:
