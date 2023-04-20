@@ -233,7 +233,8 @@ class Parser(WorkingWithSyntaxTree):
         self._go_to_next_tok()
 
         if type is not None and tok.value().type is not None:
-            self._match_var_type(tok, type)
+            if not isinstance(tok.value().type, list):
+                self._match_var_type(tok, type)
 
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
@@ -260,6 +261,8 @@ class Parser(WorkingWithSyntaxTree):
         return ret
 
     def _parse_identifier_in_using_or_indexation(self, type = None) -> Node:
+        # print(type)
+
         ident_node = self._parse_identifier_in_using(type)
         var_type = ident_node.value().type
 
@@ -669,7 +672,7 @@ class Parser(WorkingWithSyntaxTree):
             var_type = ident_node.value().type
         else:
             var_type = ident_node.children[0].value().type[0]
-        
+
         if var_type in ("int", "double"):
             right_part = self._parse_arithmetic_expression()
         elif var_type == "bool":
