@@ -19,9 +19,21 @@ class Interpreter(WorkingWithSyntaxTree):
         print(self._interpret_node(print_node.children[0]), end='')
 
     def _run_assignment(self, assignment_node: Parser.Node):
-        var_name_node = assignment_node.children[0]
+        left_node = assignment_node.children[0]
         value_node = assignment_node.children[1]
-        self._idents_tbl[var_name_node.index_in_table].value = self._interpret_node(value_node)
+        value = self._interpret_node(value_node)
+
+        if not self._is_parser_node(left_node, "indexation"):
+            self._idents_tbl[left_node.index_in_table].value = value
+        else:
+            arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
+            print(arr_to_assign)
+
+            for index_node in left_node.children[1:-1]:
+                idx = self._interpret_node(index_node)
+                arr_to_assign = arr_to_assign[idx]
+
+            arr_to_assign[self._interpret_node(left_node.children[len(left_node.children) - 1])] = value
 
     def _get_default_value(self, tp: str):
         if tp == "int":
@@ -40,14 +52,11 @@ class Interpreter(WorkingWithSyntaxTree):
         return [self._create_array(sizes[1:], default_value)] * sizes[0]
 
     def _run_declare(self, decl_node: Parser.Node):
-        # type_node = decl_node.children[0]
-
-        for curr_var_node in decl_node.children[1:]:
+        for curr_var_node in decl_node.children:
             if self._is_operator(curr_var_node, '='):
                 self._run_assignment(curr_var_node)
             else:
                 var_type = curr_var_node.value().type
-                print(var_type)
 
                 if not isinstance(var_type, list):
                     self._idents_tbl[curr_var_node.index_in_table].value = self._get_default_value(var_type)
@@ -56,8 +65,6 @@ class Interpreter(WorkingWithSyntaxTree):
                     default_value = self._get_default_value(var_type[0])
                     self._idents_tbl[curr_var_node.index_in_table].value = \
                         self._create_array(var_type[1:], default_value)
-
-                    print(self._idents_tbl[curr_var_node.index_in_table].value)
 
     def _run_if(self, if_node: Parser.Node):
         cond_node = if_node.children[0]
