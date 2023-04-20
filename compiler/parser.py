@@ -796,8 +796,6 @@ class Parser(WorkingWithSyntaxTree):
         self._match_operator(self._curr_tok(), ":")
         self._go_to_next_tok()
 
-        # statement = self._parse_statement()
-
         case_node.children = [const]
         return case_node
 
