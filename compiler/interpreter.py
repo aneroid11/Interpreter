@@ -37,7 +37,7 @@ class Interpreter(WorkingWithSyntaxTree):
             self._idents_tbl[left_node.index_in_table].value = value
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
-            
+
             try:
                 for index_node in left_node.children[1:-1]:
                     idx = self._interpret_node(index_node)
