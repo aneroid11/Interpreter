@@ -7,6 +7,16 @@ class Interpreter(WorkingWithSyntaxTree):
     class Break(Exception):
         pass
 
+    class RuntimeError(Exception):
+        def __init__(self, message: str, line: int, index: int):
+            self.message = message
+            self.line = line
+            self.index = index
+            super().__init__(message)
+
+        def __str__(self) -> str:
+            return f"{self.message} ({self.line}:{self.index})"
+
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
         super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
@@ -251,9 +261,13 @@ class Interpreter(WorkingWithSyntaxTree):
         elif self._is_keyword(node, "break"):
             raise Interpreter.Break()
         else:
-            print(f"Runtime error: unknown node: {node.line}:{node.index}")
-            exit(1)
+            raise Interpreter.RuntimeError("unknown node", node.line, node.index)
 
     def run_program(self):
         print("\n\n\n\n\n")
-        self._interpret_node(self._syntax_tree)
+
+        try:
+            self._interpret_node(self._syntax_tree)
+        except Interpreter.RuntimeError as err:
+            print(f"RUNTIME ERROR:\n{err}")
+            exit(1)
