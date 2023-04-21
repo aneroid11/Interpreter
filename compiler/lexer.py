@@ -15,7 +15,7 @@ def append_if_not_in(table, element):
 class Lexer:
     WHITESPACES = (' ', '\t', '\n')
 
-    SPECIAL_SYMBOLS = ['+', '-', '*', '/', '%', ',', ':', ';', '(', ')',
+    SPECIAL_SYMBOLS = ['+', '-', '*', '/', '%', ',', ':', ';', '(', ')', '[', ']',
                        '{', '}', '=', '==', '<', '<=', '>', '>=', '&&', '||', '!', '!=']
 
     KEYWORDS = [

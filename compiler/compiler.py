@@ -1,6 +1,7 @@
 from lexer import Lexer
 from parser import Parser
 from semantic import SemanticAnalyzer
+from interpreter import Interpreter
 
 
 def print_table(table):
@@ -79,3 +80,14 @@ class Compiler:
             self._constants_table, self._parser.get_syntax_tree()
         )
         analyzer.check_for_semantic_errors()
+
+    def run_program(self):
+        interpreter = Interpreter(
+            self._parser.get_parser_nodes(),
+            self._operators_table,
+            self._identifiers_table,
+            self._keywords_table,
+            self._constants_table,
+            self._parser.get_syntax_tree()
+        )
+        interpreter.run_program()

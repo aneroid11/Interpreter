@@ -1,10 +1,11 @@
 import sys
 
+from working_with_syntax_tree import WorkingWithSyntaxTree
 from parser import Parser
 from constant import Constant
 
 
-class SemanticAnalyzer:
+class SemanticAnalyzer(WorkingWithSyntaxTree):
     class SemanticError(Exception):
         def __init__(self, message: str, line: int, index: int):
             self.message = message
@@ -14,6 +15,14 @@ class SemanticAnalyzer:
 
         def __str__(self) -> str:
             return f"{self.message} ({self.line}:{self.index})"
+
+    class IntExpected(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("int expected", line, index)
+
+    class DoubleNotAllowed(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("double not allowed here", line, index)
 
     class DivisionByZero(SemanticError):
         def __init__(self, line: int, index: int):
@@ -27,27 +36,37 @@ class SemanticAnalyzer:
         def __init__(self, line: int, index: int):
             super().__init__("only int and string expressions are allowed in switch", line, index)
 
+    class DoubleDefaultInSwitch(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("only one default is allowed in switch", line, index)
+
+    class CaseOrDefaultNotOnFirstLevel(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("case and default must be on the first nest level", line, index)
+
     def __init__(self, parser_nodes: list, operators: list, identifiers: list, keywords: list,
                  consts: list, syntax_tree):
-        self._parser_nodes = parser_nodes
-        self._operators = operators
-        self._identifiers = identifiers
-        self._keywords = keywords
-        self._consts = consts
-        self._syntax_tree = syntax_tree
+        super().__init__(parser_nodes, operators, identifiers, keywords, consts, syntax_tree)
 
     def _check_int_expression(self, root: Parser.Node):
         if root is None:
             return
 
-        if root.table is self._consts and root.value().type == Constant.DOUBLE:
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
-        if root.table is self._keywords and root.value() == "atof":
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
-        if root.table is self._keywords and root.value() == "atoi":
+        if root.table is self._consts_tbl and root.value().type == Constant.DOUBLE:
+            # raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            raise SemanticAnalyzer.IntExpected(root.line, root.index)
+        if root.table is self._keywords_tbl and root.value() == "atof":
+            # raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            raise SemanticAnalyzer.IntExpected(root.line, root.index)
+        if root.table is self._keywords_tbl and root.value() == "atoi":
             return
-        if root.table is self._identifiers and root.value().type == "double":
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+        if root.table is self._idents_tbl:
+            if not isinstance(root.value().type, list):
+                if root.value().type == "double":
+                    raise SemanticAnalyzer.IntExpected(root.line, root.index)
+            else:
+                if root.value().type[0] == "double":
+                    raise SemanticAnalyzer.IntExpected(root.line, root.index)
 
         for child in root.children:
             self._check_int_expression(child)
@@ -56,34 +75,59 @@ class SemanticAnalyzer:
         if root is None:
             return
 
-        if root.table is self._consts and root.value().type == Constant.DOUBLE:
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
-        if root.table is self._keywords and root.value() in ("atof", "atob"):
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
-        if root.table is self._keywords and root.value() in ("atoi", "to_string", "scan"):
+        if root.table is self._consts_tbl and root.value().type == Constant.DOUBLE:
+            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+        # if root.table is self._keywords_tbl and root.value() in ("atof", "atob"):
+        if root.table is self._keywords_tbl and root.value() == "atof":
+            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+        if root.table is self._keywords_tbl and root.value() in ("atoi", "to_string", "scan"):
             return
-        if root.table is self._identifiers and root.value().type == "double":
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
+        if root.table is self._idents_tbl:
+            if not isinstance(root.value().type, list):
+                if root.value().type == "double":
+                    raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+            else:
+                if root.value().type[0] == "double":
+                    raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+
+        # if root.table is self._idents_tbl and root.value().type == "double":
+        #     raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
 
         for child in root.children:
             self._check_int_expression(child)
+
+    def _check_double_default(self, root: Parser.Node, defaults_found: int):
+        for stmt in root.children:
+            if not self._is_keyword(stmt, "switch"):
+                if self._is_keyword(stmt, "default"):
+                    defaults_found += 1
+                    if defaults_found > 1:
+                        raise SemanticAnalyzer.DoubleDefaultInSwitch(stmt.line, stmt.index)
+                else:
+                    self._check_double_default(stmt, defaults_found)
 
     def _traverse_tree(self, root: Parser.Node):
         if root is None:
             return
 
-        if root.table is self._operators and root.value() == "/":
+        if root.table is self._ops_tbl and root.value() == "/":
             divisor = root.children[1]
 
-            if divisor.table is self._consts and divisor.value().type in (Constant.DOUBLE, Constant.INT) \
+            if divisor.table is self._consts_tbl and divisor.value().type in (Constant.DOUBLE, Constant.INT) \
                 and float(divisor.value().value) == 0:
                 raise SemanticAnalyzer.DivisionByZero(divisor.line, divisor.index)
-        elif root.table is self._operators and root.value() == "%":
+        elif root.table is self._ops_tbl and root.value() == "%":
             self._check_int_expression(root.children[0])
             self._check_int_expression(root.children[1])
             return
-        elif root.table is self._keywords and root.value() in ("switch", "case"):
+        elif root.table is self._keywords_tbl and root.value() in ("switch", "case"):
             self._check_not_double_expression(root.children[0])
+
+            if self._is_keyword(root, "switch"):
+                self._check_double_default(root.children[1], 0)
+        elif self._is_parser_node(root, "indexation"):
+            for child in root.children[1:]:
+                self._check_int_expression(child)
 
         for child in root.children:
             self._traverse_tree(child)
