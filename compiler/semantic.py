@@ -16,6 +16,14 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
         def __str__(self) -> str:
             return f"{self.message} ({self.line}:{self.index})"
 
+    class IntExpected(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("int expected", line, index)
+
+    class DoubleNotAllowed(SemanticError):
+        def __init__(self, line: int, index: int):
+            super().__init__("double not allowed here", line, index)
+
     class DivisionByZero(SemanticError):
         def __init__(self, line: int, index: int):
             super().__init__("division by zero", line, index)
@@ -45,13 +53,16 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
             return
 
         if root.table is self._consts_tbl and root.value().type == Constant.DOUBLE:
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            # raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            raise SemanticAnalyzer.IntExpected(root.line, root.index)
         if root.table is self._keywords_tbl and root.value() == "atof":
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            # raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            raise SemanticAnalyzer.IntExpected(root.line, root.index)
         if root.table is self._keywords_tbl and root.value() == "atoi":
             return
         if root.table is self._idents_tbl and root.value().type == "double":
-            raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            # raise SemanticAnalyzer.InvalidModOperands(root.line, root.index)
+            raise SemanticAnalyzer.IntExpected(root.line, root.index)
 
         for child in root.children:
             self._check_int_expression(child)
@@ -61,13 +72,14 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
             return
 
         if root.table is self._consts_tbl and root.value().type == Constant.DOUBLE:
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
-        if root.table is self._keywords_tbl and root.value() in ("atof", "atob"):
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
+            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+        # if root.table is self._keywords_tbl and root.value() in ("atof", "atob"):
+        if root.table is self._keywords_tbl and root.value() == "atof":
+            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
         if root.table is self._keywords_tbl and root.value() in ("atoi", "to_string", "scan"):
             return
         if root.table is self._idents_tbl and root.value().type == "double":
-            raise SemanticAnalyzer.InvalidExpressionInSwitch(root.line, root.index)
+            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
 
         for child in root.children:
             self._check_int_expression(child)
@@ -101,6 +113,9 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
 
             if self._is_keyword(root, "switch"):
                 self._check_double_default(root.children[1], 0)
+        elif self._is_parser_node(root, "indexation"):
+            for child in root.children[1:]:
+                self._check_int_expression(child)
 
         for child in root.children:
             self._traverse_tree(child)
