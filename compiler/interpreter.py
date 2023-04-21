@@ -171,7 +171,10 @@ class Interpreter(WorkingWithSyntaxTree):
 
         for index_node in node.children[1:]:
             idx = self._interpret_node(index_node)
-            val = val[idx]
+            try:
+                val = val[idx]
+            except IndexError:
+                raise Interpreter.RuntimeError("array index out of range", index_node.line, index_node.index)
 
         return val
 
@@ -207,11 +210,20 @@ class Interpreter(WorkingWithSyntaxTree):
                 return "false"
             return ret
         elif self._is_keyword(node, "atoi"):
-            return int(self._interpret_node(node.children[0]))
+            try:
+                return int(self._interpret_node(node.children[0]))
+            except ValueError:
+                raise Interpreter.RuntimeError("input is not convertible to int", node.line, node.index)
         elif self._is_keyword(node, "atof"):
-            return float(self._interpret_node(node.children[0]))
+            try:
+                return float(self._interpret_node(node.children[0]))
+            except ValueError:
+                raise Interpreter.RuntimeError("input is not convertible to double", node.line, node.index)
         elif self._is_keyword(node, "atob"):
-            return bool(self._interpret_node(node.children[0]))
+            try:
+                return bool(self._interpret_node(node.children[0]))
+            except ValueError:
+                raise Interpreter.RuntimeError("input is not convertible to bool", node.line, node.index)
         elif self._is_keyword(node, "scan"):
             return input()
         elif self._is_operator(node, '+'):
@@ -269,5 +281,5 @@ class Interpreter(WorkingWithSyntaxTree):
         try:
             self._interpret_node(self._syntax_tree)
         except Interpreter.RuntimeError as err:
-            print(f"RUNTIME ERROR:\n{err}")
+            print(f"\n\n\nRUNTIME ERROR:\n{err}")
             exit(1)
