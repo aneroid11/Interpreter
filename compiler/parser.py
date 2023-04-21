@@ -77,6 +77,10 @@ class Parser(WorkingWithSyntaxTree):
         def __init__(self, line: int, index: int):
             super().__init__(f"cannot initialize array", line, index)
 
+    class ArrSizeLessThan1(ParserError):
+        def __init__(self, line: int, index: int):
+            super().__init__(f"array size must be > 0", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -191,10 +195,11 @@ class Parser(WorkingWithSyntaxTree):
         self._go_to_next_tok()
         return ret
 
-    def _parse_int_literal(self) -> Node:
+    def _parse_non_negative_int_literal(self) -> Node:
         tok = self._curr_tok()
-        if tok.table is self._consts_tbl and tok.value().type != Constant.INT:
-            raise Parser.Expected("int literal", tok.line, tok.index)
+
+        if not (tok.table is self._consts_tbl and tok.value().type == Constant.INT):
+            raise Parser.Expected("non-negative int literal", tok.line, tok.index)
 
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
         self._go_to_next_tok()
@@ -208,8 +213,13 @@ class Parser(WorkingWithSyntaxTree):
 
         while self._is_operator(self._curr_tok(), '['):
             self._go_to_next_tok()
-            curr_size_node = self._parse_int_literal()
-            arr_sizes.append(int(curr_size_node.value().value))
+            curr_size_node = self._parse_non_negative_int_literal()
+            arr_size = int(curr_size_node.value().value)
+
+            if arr_size < 1:
+                raise Parser.ArrSizeLessThan1(curr_size_node.line, curr_size_node.index)
+
+            arr_sizes.append(arr_size)
             self._match_operator(self._curr_tok(), ']')
             self._go_to_next_tok()
 
