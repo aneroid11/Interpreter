@@ -78,8 +78,16 @@ class SemanticAnalyzer(WorkingWithSyntaxTree):
             raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
         if root.table is self._keywords_tbl and root.value() in ("atoi", "to_string", "scan"):
             return
-        if root.table is self._idents_tbl and root.value().type == "double":
-            raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+        if root.table is self._idents_tbl:
+            if not isinstance(root.value().type, list):
+                if root.value().type == "double":
+                    raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+            else:
+                if root.value().type[0] == "double":
+                    raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
+
+        # if root.table is self._idents_tbl and root.value().type == "double":
+        #     raise SemanticAnalyzer.DoubleNotAllowed(root.line, root.index)
 
         for child in root.children:
             self._check_int_expression(child)
