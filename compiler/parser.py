@@ -81,6 +81,10 @@ class Parser(WorkingWithSyntaxTree):
         def __init__(self, line: int, index: int):
             super().__init__(f"array size must be > 0", line, index)
 
+    class IncorrectNumOfIndexes(ParserError):
+        def __init__(self, line: int, index: int):
+            super().__init__(f"incorrect amount of indexes", line, index)
+
     class Node(Lexer.Token):
         def __init__(self, tbl = None, index_in_tbl = None, children = None, line: int = 0, index: int = 0):
             if children is None:
@@ -296,16 +300,24 @@ class Parser(WorkingWithSyntaxTree):
             if var_type[0] == "string":
                 max_indexes_num += 1
 
-        num_indexes = len(var_type) - 1
+        # num_indexes = len(var_type) - 1
         indexes = []
-        for i in range(num_indexes):
-            self._match_operator(self._curr_tok(), '[')
+        while self._is_operator(self._curr_tok(), '['):
             self._go_to_next_tok()
-
             indexes.append(self._parse_arithmetic_expression())
-
             self._match_operator(self._curr_tok(), ']')
             self._go_to_next_tok()
+        # for i in range(num_indexes):
+        #     self._match_operator(self._curr_tok(), '[')
+        #     self._go_to_next_tok()
+        #
+        #     indexes.append(self._parse_arithmetic_expression())
+        #
+        #     self._match_operator(self._curr_tok(), ']')
+        #     self._go_to_next_tok()
+
+        if len(indexes) < min_indexes_num or len(indexes) > max_indexes_num:
+            raise Parser.IncorrectNumOfIndexes(ident_node.line, ident_node.index)
 
         indexation_node = Parser.Node(
             self._parser_nodes_tbl,
