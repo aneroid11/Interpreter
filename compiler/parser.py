@@ -281,11 +281,21 @@ class Parser(WorkingWithSyntaxTree):
     def _parse_identifier_in_using_or_indexation(self, type = None) -> Node:
         ident_node = self._parse_identifier_in_using(type)
         var_type = ident_node.value().type
+        min_indexes_num = 0
+        max_indexes_num = 0
 
-        if not isinstance(var_type, list):
+        if not isinstance(var_type, list) and var_type != "string":
             return ident_node
 
-        # this is an array
+        if var_type == "string":
+            max_indexes_num = 1
+        else:
+            # this is an array
+            min_indexes_num = len(var_type) - 1
+            max_indexes_num = min_indexes_num
+            if var_type[0] == "string":
+                max_indexes_num += 1
+
         num_indexes = len(var_type) - 1
         indexes = []
         for i in range(num_indexes):
