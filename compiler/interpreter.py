@@ -37,6 +37,9 @@ class Interpreter(WorkingWithSyntaxTree):
             self._idents_tbl[left_node.index_in_table].value = value
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
+            initial_arr = arr_to_assign
+            print(initial_arr)
+
             arr_elem_tp = self._idents_tbl[left_node.children[0].index_in_table].type
             if isinstance(arr_elem_tp, list):
                 arr_elem_tp = arr_elem_tp[0]
@@ -46,10 +49,15 @@ class Interpreter(WorkingWithSyntaxTree):
             try:
                 if arr_elem_tp != "string" or len(index_nodes) == num_indexes_in_decl:
                     for i in range(len(index_nodes)):
+                        # print(initial_arr)
+
                         idx = self._interpret_node(index_nodes[i])
 
                         if i == len(index_nodes) - 1:
+                            # print(initial_arr)
+                            # print(arr_to_assign)
                             arr_to_assign[idx] = value
+                            # print(initial_arr)
                         else:
                             arr_to_assign = arr_to_assign[idx]
                 else:
@@ -87,7 +95,13 @@ class Interpreter(WorkingWithSyntaxTree):
     def _create_array(self, sizes: list, default_value):
         if len(sizes) == 0:
             return default_value
-        return [self._create_array(sizes[1:], default_value)] * sizes[0]
+
+        ret = []
+        for i in range(sizes[0]):
+            ret.append(self._create_array(sizes[1:], default_value))
+
+        return ret
+        # return [self._create_array(sizes[1:], default_value)] * sizes[0]
 
     def _run_declare(self, decl_node: Parser.Node):
         for curr_var_node in decl_node.children:
