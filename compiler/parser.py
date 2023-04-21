@@ -319,6 +319,9 @@ class Parser(WorkingWithSyntaxTree):
         if len(indexes) < min_indexes_num or len(indexes) > max_indexes_num:
             raise Parser.IncorrectNumOfIndexes(ident_node.line, ident_node.index)
 
+        if len(indexes) < 1:
+            return ident_node
+
         indexation_node = Parser.Node(
             self._parser_nodes_tbl,
             self._parser_nodes_tbl.index("indexation"),
