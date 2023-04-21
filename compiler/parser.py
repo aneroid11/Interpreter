@@ -173,11 +173,11 @@ class Parser(WorkingWithSyntaxTree):
         if isinstance(tp, tuple):
             # if tok.value().type not in tp:
             if actual_type not in tp:
-                raise Parser.InvalidVarType(tok.value().type, str(tp), tok.line, tok.index)
+                raise Parser.InvalidVarType(actual_type, str(tp), tok.line, tok.index)
         else:
             # if tok.value().type != tp:
             if actual_type != tp:
-                raise Parser.InvalidVarType(tok.value().type, tp, tok.line, tok.index)
+                raise Parser.InvalidVarType(actual_type, tp, tok.line, tok.index)
 
     def _check_for_forbidden_statements(self, tok: Lexer.Token):
         # if self._switch_expression_type is None:
@@ -251,8 +251,8 @@ class Parser(WorkingWithSyntaxTree):
         self._go_to_next_tok()
 
         if type is not None and tok.value().type is not None:
-            if not isinstance(tok.value().type, list):
-                self._match_var_type(tok, type)
+            # if not isinstance(tok.value().type, list):
+            self._match_var_type(tok, type)
 
         ret = Parser.Node(tok.table, tok.index_in_table, line=tok.line, index=tok.index)
 
