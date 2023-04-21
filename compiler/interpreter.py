@@ -37,13 +37,14 @@ class Interpreter(WorkingWithSyntaxTree):
             self._idents_tbl[left_node.index_in_table].value = value
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
-            # print(arr_to_assign)
-
-            for index_node in left_node.children[1:-1]:
-                idx = self._interpret_node(index_node)
-                arr_to_assign = arr_to_assign[idx]
-
-            arr_to_assign[self._interpret_node(left_node.children[len(left_node.children) - 1])] = value
+            
+            try:
+                for index_node in left_node.children[1:-1]:
+                    idx = self._interpret_node(index_node)
+                    arr_to_assign = arr_to_assign[idx]
+                arr_to_assign[self._interpret_node(left_node.children[len(left_node.children) - 1])] = value
+            except IndexError:
+                raise Interpreter.RuntimeError("index out of range", left_node.line, left_node.index)
 
     def _get_default_value(self, tp: str):
         if tp == "int":
