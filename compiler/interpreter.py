@@ -38,7 +38,7 @@ class Interpreter(WorkingWithSyntaxTree):
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
             initial_arr = arr_to_assign
-            print(initial_arr)
+            # print(initial_arr)
 
             arr_elem_tp = self._idents_tbl[left_node.children[0].index_in_table].type
             if isinstance(arr_elem_tp, list):
