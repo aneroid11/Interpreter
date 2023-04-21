@@ -37,7 +37,9 @@ class Interpreter(WorkingWithSyntaxTree):
             self._idents_tbl[left_node.index_in_table].value = value
         else:
             arr_to_assign = self._idents_tbl[left_node.children[0].index_in_table].value
-            arr_elem_tp = self._idents_tbl[left_node.children[0].index_in_table].type[0]
+            arr_elem_tp = self._idents_tbl[left_node.children[0].index_in_table].type
+            if isinstance(arr_elem_tp, list):
+                arr_elem_tp = arr_elem_tp[0]
             num_indexes_in_decl = len(self._idents_tbl[left_node.children[0].index_in_table].type) - 1
             index_nodes = left_node.children[1:]
 
@@ -52,22 +54,22 @@ class Interpreter(WorkingWithSyntaxTree):
                             arr_to_assign = arr_to_assign[idx]
                 else:
                     # this is a string
+                    if len(index_nodes) - 1 > 0:
+                        for i in range(len(index_nodes) - 1):
+                            idx = self._interpret_node(index_nodes[i])
 
-                    for i in range(len(index_nodes) - 1):
-                        idx = self._interpret_node(index_nodes[i])
+                            if i == len(index_nodes) - 2:
+                                idx2 = self._interpret_node(index_nodes[i + 1])
+                                arr_to_assign[idx] = arr_to_assign[idx][:idx2] + value + arr_to_assign[idx][(idx2 + 1):]
+                            else:
+                                arr_to_assign = arr_to_assign[idx]
+                    else:
+                        idx = self._interpret_node(index_nodes[0])
 
-                        if i == len(index_nodes) - 2:
-                            idx2 = self._interpret_node(index_nodes[i + 1])
-                            arr_to_assign[idx] = arr_to_assign[idx][:idx2] + value + arr_to_assign[idx][(idx2 + 1):]
-                        else:
-                            arr_to_assign = arr_to_assign[idx]
+                        initial_value = self._idents_tbl[left_node.children[0].index_in_table].value
+                        self._idents_tbl[left_node.children[0].index_in_table].value = \
+                            initial_value[:idx] + value + initial_value[(idx + 1):]
 
-                # for index_node in index_nodes:
-                #     idx = self._interpret_node(index_node)
-                #     arr_to_assign = arr_to_assign[idx]
-                #
-                # idx = self._interpret_node(left_node.children[len(left_node.children) - 1])
-                # arr_to_assign[idx] = value
             except IndexError:
                 raise Interpreter.RuntimeError("index out of range", left_node.line, left_node.index)
 
